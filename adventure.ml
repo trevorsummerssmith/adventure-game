@@ -32,6 +32,8 @@ let handler body sock req =
   match path, C.Request.meth req with
   | "/", `GET
   | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
+  | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
+  | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
   | _ -> respond `Bad_request
 
 let log_handler handler ~body sock request =
