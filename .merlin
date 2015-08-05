@@ -1,0 +1,9 @@
+S .
+B _build
+PKG ounit
+PKG core
+PKG async
+PKG cohttp
+PKG cohttp_async
+PKG conduit
+PKG magic-mime
