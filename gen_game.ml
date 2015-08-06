@@ -26,7 +26,7 @@ let doit seed file () =
       make_stuff (i-1) (op1::op2::aux)
   in
   let ops = make_stuff 20 [] in
-  let game = {Game.ops; board_dimensions=(width,height)} in
+  let game = Game.create ops (width,height) in
   Out_channel.with_file file ~f:(fun oc ->
       Game.sexp_of_t game
       |> Sexp.to_string

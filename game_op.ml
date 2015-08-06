@@ -10,3 +10,6 @@ type t =
   { posn : Posn.t
   ; op : op
   } with sexp
+
+let create op posn =
+  {op; posn}
