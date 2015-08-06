@@ -21,8 +21,8 @@ let doit seed file () =
     else
       let posn1 = random_posn () in
       let posn2 = random_posn () in
-      let op1 = Game_op.({posn=posn1; op=AddTree}) in
-      let op2 = Game_op.({posn=posn2; op=AddRock}) in
+      let op1 = Game_op.({posn=posn1; op=Add_tree}) in
+      let op2 = Game_op.({posn=posn2; op=Add_rock}) in
       make_stuff (i-1) (op1::op2::aux)
   in
   let ops = make_stuff 20 [] in

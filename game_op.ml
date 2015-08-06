@@ -1,10 +1,10 @@
 open Core.Std
 
 type op =
-  | AddTree
-  | RemoveTree
-  | AddRock
-  | RemoveRock with sexp
+  | Add_tree
+  | Remove_tree
+  | Add_rock
+  | Remove_rock with sexp
 
 type t =
   { posn : Posn.t
