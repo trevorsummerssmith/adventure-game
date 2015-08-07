@@ -20,7 +20,7 @@ let add_rock _ =
 
 let add_rock_and_tree_same_tile _ =
   let ops = Game_op.([create Add_rock (1,2);
-		      create Add_tree (1,2)]) in
+                      create Add_tree (1,2)]) in
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
@@ -29,7 +29,7 @@ let add_rock_and_tree_same_tile _ =
 
 let add_rock_and_tree_different_tiles _ =
   let ops = Game_op.([create Add_rock (2,3);
-		      create Add_tree (1,2)]) in
+                      create Add_tree (1,2)]) in
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
@@ -39,13 +39,13 @@ let add_rock_and_tree_different_tiles _ =
 
 let multiple_adds _ =
   let ops = Game_op.([create Add_rock (2,3);
-		      create Add_rock (2,3);
-		      create Add_tree (2,3);
-		      create Add_tree (1,2);
-		      create Add_rock (5,5);
-		      create Add_rock (5,5);
-		      create Add_rock (5,5);
-		     ]) in
+                      create Add_rock (2,3);
+                      create Add_tree (2,3);
+                      create Add_tree (1,2);
+                      create Add_rock (5,5);
+                      create Add_rock (5,5);
+                      create Add_rock (5,5);
+                     ]) in
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   for i = 0 to Game.num_ops dynamo.Dynamo.game do
@@ -57,8 +57,8 @@ let multiple_adds _ =
 
 let remove_tree _ =
   let ops = Game_op.([create Add_rock (1,2);
-		      create Add_tree (1,2);
-		      create Remove_tree (1,2);]) in
+                      create Add_tree (1,2);
+                      create Remove_tree (1,2);]) in
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
@@ -68,8 +68,8 @@ let remove_tree _ =
 
 let remove_rock _ =
   let ops = Game_op.([create Add_rock (1,2);
-		      create Add_tree (1,2);
-		      create Remove_rock (1,2);]) in
+                      create Add_tree (1,2);
+                      create Remove_rock (1,2);]) in
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
@@ -91,15 +91,15 @@ let illegal_remove_rock _ =
 
 let suite =
   "dynamo suite">:::
-    [
-      "empty apply">::empty_apply;
-      "add tree">::add_tree;
-      "add rock">::add_rock;
-      "add rock & tree same">::add_rock_and_tree_same_tile;
-      "add rock & tree different">::add_rock_and_tree_different_tiles;
-      "multiple rocks & trees">::multiple_adds;
-      "remove tree">::remove_tree;
-      "remove rock">::remove_rock;
-      "illegal remove tree">::illegal_remove_tree;
-      "illegal remove rock">::illegal_remove_rock;
-    ]
+  [
+    "empty apply">::empty_apply;
+    "add tree">::add_tree;
+    "add rock">::add_rock;
+    "add rock & tree same">::add_rock_and_tree_same_tile;
+    "add rock & tree different">::add_rock_and_tree_different_tiles;
+    "multiple rocks & trees">::multiple_adds;
+    "remove tree">::remove_tree;
+    "remove rock">::remove_rock;
+    "illegal remove tree">::illegal_remove_tree;
+    "illegal remove rock">::illegal_remove_rock;
+  ]

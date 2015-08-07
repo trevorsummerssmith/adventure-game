@@ -3,10 +3,11 @@ open Core.Std
 type t =
   { game : Game.t
   ; board : Board.t
-  ; mutable tick : int (* Time in the game.
-		  This starts at 0 and is an index into the game ops. It represents
-		  the the next instruction to be ran. The board represents op tick-1.
-		  *)
+  ; mutable tick : int
+  (* Time in the game.
+     This starts at 0 and is an index into the game ops. It represents
+     the the next instruction to be ran. The board represents op tick-1.
+  *)
   }
 
 let create game =
@@ -22,19 +23,19 @@ let take_action board op =
   let tile = Board.get board op.posn in
   match op.op with
   | Add_tree ->
-     let trees = tile.trees + 1 in
-     Board.set board {tile with trees} op.posn
+    let trees = tile.trees + 1 in
+    Board.set board {tile with trees} op.posn
   | Remove_tree ->
-     let trees = if tile.trees = 0 then 0
-		else tile.trees - 1 in
-     Board.set board {tile with trees} op.posn
+    let trees = if tile.trees = 0 then 0
+      else tile.trees - 1 in
+    Board.set board {tile with trees} op.posn
   | Add_rock ->
-     let rocks = tile.rocks + 1 in
-     Board.set board {tile with rocks} op.posn
+    let rocks = tile.rocks + 1 in
+    Board.set board {tile with rocks} op.posn
   | Remove_rock ->
-     let rocks = if tile.rocks = 0 then 0
-		else tile.rocks - 1 in
-     Board.set board {tile with rocks} op.posn
+    let rocks = if tile.rocks = 0 then 0
+      else tile.rocks - 1 in
+    Board.set board {tile with rocks} op.posn
 
 let step dynamo =
   if dynamo.tick >= Game.num_ops dynamo.game then
