@@ -3,6 +3,8 @@ open Async.Std
 module C = Cohttp
 module CA = Cohttp_async
 
+let info = Log.Global.info
+
 let respond ?(flush) ?(headers) ?(body) status_code =
   (* Wrapper around Server.respond so that we can catch the Server.respond
      type before it becomes abstract *)
@@ -27,13 +29,28 @@ let serve_file docroot uri =
   CA.Server.resolve_local_file ~docroot ~uri
   |> respond_with_file
 
-let handler body sock req =
+let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
   match path, C.Request.meth req with
   | "/", `GET
   | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
   | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
+  | "/board", `GET -> (
+      (* Should have x and y *)
+      let uri = C.Request.uri req in
+      match Uri.get_query_param uri "x", Uri.get_query_param uri "y" with
+      | Some x, Some y ->
+        (try
+           let x, y = Int.of_string x, Int.of_string y in
+           let tile = Dynamo.get_tile dynamo (x,y) in
+           let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks\"}"
+               (Tile.trees tile) (Tile.rocks tile)
+                      |> CA.Body.of_string in
+           respond ~body `OK
+         with exn -> respond `Bad_request)
+      | _, _ -> respond ~body:(CA.Body.of_string "x and y params required") `Bad_request
+    )
   | _ -> respond `Bad_request
 
 let log_handler handler ~body sock request =
@@ -55,12 +72,12 @@ let log_handler handler ~body sock request =
     (String.length s);
   CA.Server.respond ?flush ?headers:headerss ~body:(CA.Body.of_string s) status_code
 
-let determine_mode key_file cert_file =
   let file_must_exist ~msg filename =
     match Core.Std.Sys.file_exists filename with
     | `Yes -> ()
     | _ -> failwith (Printf.sprintf msg filename)
-  in
+
+let determine_mode key_file cert_file =
   let open Conduit_async in
   match (key_file, cert_file) with
   | (Some k, Some c) ->
@@ -75,12 +92,24 @@ let exception_handler _address exn =
   (* TODO how to catch this earlier and respond to client? *)
   Log.Global.error "Got an exception: %s" (Exn.to_string_mach exn)
 
-let start_server port key_file cert_file () =
-  Log.Global.info "adventure game server is starting up!";
+let read_game_file filename =
+  let () = file_must_exist ~msg:"Game file not found %s" filename in
+  In_channel.with_file filename ~f:(fun ic ->
+      let s = In_channel.input_all ic in
+      Sexp.of_string s |> Game.t_of_sexp)
+
+let start_server game_filename port key_file cert_file () =
+  info "adventure game server is starting up!";
+  info "Using game file %s" game_filename;
+  let game = read_game_file game_filename in
+  info "initializing game with %d actions..." (Game.num_ops game);
+  let dynamo = Dynamo.create game in
+  let () = Dynamo.run dynamo in
+  info "done with initialization!";
   let mode = determine_mode key_file cert_file in
-  Log.Global.info "Listening for %s on port %d"
+  info "Listening for %s on port %d"
     (match mode with `OpenSSL _ -> "HTTPS" | _ -> "HTTP") port;
-  let handler = log_handler handler in
+  let handler = log_handler (handler dynamo) in
   CA.Server.create
     ~on_handler_error:(`Call exception_handler)
     ~mode
@@ -91,6 +120,7 @@ let () =
   Command.async_basic
     ~summary:"Simple http server that ouputs body of POST's"
     Command.Spec.(empty
+                  +> anon ("game-file" %: file)
                   +> flag "-p" (optional_with_default 8000 int)
                     ~doc:"int Source port to listen on"
                   +> flag "-key-file" (optional file)

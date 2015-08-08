@@ -2,7 +2,8 @@
 all: server
 
 server: adventure.ml
-	ocamlbuild adventure.native -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind
+	ocamlbuild adventure.native -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind \
+	-syntax camlp4o -pkg sexplib.syntax,comparelib.syntax
 
 .PHONY: clean
 clean:

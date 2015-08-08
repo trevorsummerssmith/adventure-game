@@ -23,19 +23,19 @@ let take_action board op =
   let tile = Board.get board op.posn in
   match op.op with
   | Add_tree ->
-    let trees = tile.trees + 1 in
-    Board.set board {tile with trees} op.posn
+    let trees = Tile.trees tile + 1 in
+    Board.set board (Tile.from ~trees tile) op.posn
   | Remove_tree ->
-    let trees = if tile.trees = 0 then 0
-      else tile.trees - 1 in
-    Board.set board {tile with trees} op.posn
+    let trees = if (Tile.trees tile) = 0 then 0
+      else (Tile.trees tile) - 1 in
+    Board.set board (Tile.from ~trees tile) op.posn
   | Add_rock ->
-    let rocks = tile.rocks + 1 in
-    Board.set board {tile with rocks} op.posn
+    let rocks = (Tile.rocks tile) + 1 in
+    Board.set board (Tile.from ~rocks tile) op.posn
   | Remove_rock ->
-    let rocks = if tile.rocks = 0 then 0
-      else tile.rocks - 1 in
-    Board.set board {tile with rocks} op.posn
+    let rocks = if (Tile.rocks tile) = 0 then 0
+      else (Tile.rocks tile) - 1 in
+    Board.set board (Tile.from ~rocks tile) op.posn
 
 let step dynamo =
   if dynamo.tick >= Game.num_ops dynamo.game then
@@ -44,6 +44,11 @@ let step dynamo =
     let op = Game.nth_op dynamo.game dynamo.tick in
     let () = take_action dynamo.board op in
     dynamo.tick <- (dynamo.tick + 1)
+
+let run dynamo =
+  for i = 0 to Game.num_ops dynamo.game do
+    step dynamo
+  done
 
 let get_tile dynamo posn =
   Board.get dynamo.board posn
