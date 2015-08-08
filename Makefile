@@ -5,6 +5,10 @@ server: adventure.ml
 	ocamlbuild adventure.native -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind \
 	-syntax camlp4o -pkg sexplib.syntax,comparelib.syntax
 
+gen_game: gen_game.ml
+	ocamlbuild gen_game.native -syntax camlp4o -pkg sexplib.syntax,comparelib.syntax,fieldslib.syntax -pkg core -pkg async -pkg uri \
+	-pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind
+
 .PHONY: clean
 clean:
 	ocamlbuild -clean

@@ -44,8 +44,8 @@ let handler dynamo body sock req =
         (try
            let x, y = Int.of_string x, Int.of_string y in
            let tile = Dynamo.get_tile dynamo (x,y) in
-           let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks\"}"
-               (Tile.trees tile) (Tile.rocks tile)
+           let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %d players\"}"
+               (Tile.trees tile) (Tile.rocks tile) (Tile.players tile |> List.length)
                       |> CA.Body.of_string in
            respond ~body `OK
          with exn -> respond `Bad_request)
