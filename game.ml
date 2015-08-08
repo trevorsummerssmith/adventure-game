@@ -6,7 +6,9 @@ type t =
   } with sexp
 
 let create ops board_dimensions =
-  {ops; board_dimensions}
+  { ops
+  ; board_dimensions
+  }
 
 let board_dimensions game =
   game.board_dimensions
