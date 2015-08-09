@@ -162,14 +162,15 @@ let install_signal_handlers dynamo =
        exit 0) >>> (fun _ -> ())
     )
 
-let start_server game_filename port key_file cert_file () =
+let start_server game_filename no_exit_save port key_file cert_file () =
   info "adventure game server is starting up!";
   info "Using game file %s" game_filename;
   let game = read_game_file game_filename in
   info "initializing game with %d actions..." (Game.num_ops game);
   let dynamo = Dynamo.create game in
   let () = Dynamo.run dynamo in
-  let () = install_signal_handlers dynamo in
+  if not no_exit_save then
+    install_signal_handlers dynamo;
   info "done with initialization!";
   let mode = determine_mode key_file cert_file in
   info "Listening for %s on port %d"
@@ -183,9 +184,11 @@ let start_server game_filename port key_file cert_file () =
 
 let () =
   Command.async_basic
-    ~summary:"Simple http server that ouputs body of POST's"
+    ~summary:"adventure game server!"
     Command.Spec.(empty
                   +> anon ("game-file" %: file)
+                  +> flag "-no-exit-save" no_arg
+                    ~doc:"Don't save the game file upon exit"
                   +> flag "-p" (optional_with_default 8000 int)
                     ~doc:"int Source port to listen on"
                   +> flag "-key-file" (optional file)
@@ -193,4 +196,4 @@ let () =
                   +> flag "-cert-file" (optional file)
                     ~doc:"File of cert."
                  ) start_server
-  |> Command.run ~version:"0.0.1" ~build_info:"foo"
+  |> Command.run
