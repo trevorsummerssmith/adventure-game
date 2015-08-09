@@ -32,6 +32,46 @@ function helloCallback(msg, txtStatus, jqXHR) {
     console.log(msg);
 }
 
+function getLocation() {
+    if (navigator.geolocation) {
+	navigator.geolocation.getCurrentPosition(function (position) {
+	    $("#x").val(position.coords.longitude);
+	    $("#y").val(position.coords.latitude);
+	}, function (error) {
+	    switch(error.code) {
+	    case error.PERMISSION_DENIED:
+		alert("User denied the request for Geolocation.")
+		break;
+	    case error.POSITION_UNAVAILABLE:
+		alert("Location information is unavailable.")
+		break;
+	    case error.TIMEOUT:
+		alert("The request to get user location timed out.")
+		break;
+	    case error.UNKNOWN_ERROR:
+		alert("GeoLocation: An unknown error occurred.")
+		break;
+	    }
+	});
+    } else {
+	alert("Cannot do geolocation in your browser");
+    }
+}
+
+function sendLocation() {
+    var x = $("#x").val();
+    var y = $("#y").val();
+    $.ajax({
+	method:"GET",
+	url:"/player",
+	data: {lat : y, long: x, playerId: PLAYER_ID},
+	success: function(data, status, jqXHR) {
+	    $("#game-text").text(data);
+	}
+    });
+}
+
+var PLAYER_ID = null;
 function startGame() {
     var id = getParam("playerId");
     if (id == null) {
@@ -39,6 +79,7 @@ function startGame() {
 	return;
     }
     console.log("id: " + id);
+    PLAYER_ID = id;
 }
 
 function selectCharacter(id) {

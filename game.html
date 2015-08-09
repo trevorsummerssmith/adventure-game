@@ -11,6 +11,8 @@
         color: #fff;
         font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
       }
+
+      a { color: white; }
     </style>
   </head>
   <body>
@@ -22,11 +24,17 @@
       <span style="color: #333;"> . talk</span>
       <span style="color: #333;"> . enter</span>
     </div>
-    <div class="container-fluid">
+    <div id="game-text" class="container-fluid">
       A grove of sycamore trees stands a few feet away.
       Near to your feet are deep black rocks. A matte grey fortress
       sits a bit behind the trees.
     </div>
+    <form>
+      <input type="text" name="x" id="x"></input>
+      <input type="text" name="y" id="y"></input>
+      <a href="#" onclick="getLocation();">Get location</a>
+      <a href="#" onclick="sendLocation();">Send location</a>
+    </form>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="game.js"></script>
     <script>

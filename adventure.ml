@@ -10,6 +10,10 @@ let respond ?(flush) ?(headers) ?(body) status_code =
      type before it becomes abstract *)
   return (flush, headers, body, status_code)
 
+let bad_request msg =
+  let s = Printf.sprintf "{\"msg\":\"%s\"}" msg in
+  respond ~body:(CA.Body.of_string s) `Bad_request
+
 let respond_with_file ?flush ?headers filename =
   (* This function exists so we can use our logger with it. Otherwise we
      would just use CA.Server.respond_with_file *)
@@ -29,6 +33,41 @@ let serve_file docroot uri =
   CA.Server.resolve_local_file ~docroot ~uri
   |> respond_with_file
 
+let respond_with_tile_description dynamo posn =
+  let tile = Dynamo.get_tile dynamo posn in
+  let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %d players\"}"
+      (Tile.trees tile) (Tile.rocks tile) (Tile.players tile |> List.length)
+             |> CA.Body.of_string in
+  respond ~body `OK
+
+let handle_player dynamo req body =
+  (* We should have playerId, lat and long get params *)
+  let uri = C.Request.uri req in
+  let q = Uri.get_query_param uri in
+  match q "playerId", q "lat", q "long" with
+  | Some playerId, Some lat, Some long -> begin
+      try
+        (* Convert to respect types. All conversions will throw. *)
+        let id = Uuid.of_string playerId in
+        let lat = Float.of_string lat in
+        let long = Float.of_string long in
+        let players = Dynamo.players dynamo in
+        match Hashtbl.find players id with
+        | Some player ->
+          begin
+            (* TODO assumption board is a square *)
+            let (x,_) = Dynamo.dimensions dynamo in
+            let posn = Gps.to_posn ~tiles_per_side:x ~lat ~long in
+            let op = Game_op.(create (Move_player id) posn) in
+            match Dynamo.add_op dynamo op with
+            | Ok () -> (Dynamo.step dynamo; respond_with_tile_description dynamo posn)
+            | Error e -> bad_request (Error.to_string_hum e)
+          end
+        | None -> bad_request "Unknown player"
+      with exn -> bad_request (Printf.sprintf "%s" (Exn.to_string exn))
+    end
+  | _ -> bad_request "Player id, lat and long required"
+
 let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
   match path, C.Request.meth req with
@@ -37,6 +76,7 @@ let handler dynamo body sock req =
   | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
   | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
+  | "/player", `GET -> handle_player dynamo req body
   | "/players", `GET ->
     (* List players *)
     let player_str =
@@ -55,13 +95,9 @@ let handler dynamo body sock req =
       | Some x, Some y ->
         (try
            let x, y = Int.of_string x, Int.of_string y in
-           let tile = Dynamo.get_tile dynamo (x,y) in
-           let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %d players\"}"
-               (Tile.trees tile) (Tile.rocks tile) (Tile.players tile |> List.length)
-                      |> CA.Body.of_string in
-           respond ~body `OK
-         with exn -> respond `Bad_request)
-      | _, _ -> respond ~body:(CA.Body.of_string "x and y params required") `Bad_request
+           respond_with_tile_description dynamo (x,y)
+         with exn -> bad_request (Exn.to_string exn))
+      | _, _ -> bad_request "x and y params required"
     )
   | _ -> respond `Bad_request
 

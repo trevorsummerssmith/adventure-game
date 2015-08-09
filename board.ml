@@ -23,3 +23,6 @@ let get board (x, y) =
 let set board tile (x, y) =
   assert_bounds board (x,y);
   board.board.(x).(y) <- tile
+
+let dimensions board =
+  board.dimensions

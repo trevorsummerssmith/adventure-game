@@ -7,7 +7,7 @@ open Core.Std
 *)
 
 type t =
-  { game : Game.t
+  { mutable game : Game.t
   ; board : Board.t
   ; players : (Uuid.t, Player.t) Hashtbl.t
   (* Mapping from player id to players. The id should only come from the player
@@ -82,8 +82,16 @@ let run dynamo =
     step dynamo
   done
 
+let add_op dynamo op =
+  let game = Game.add_op dynamo.game op in
+  let () = dynamo.game <- game in
+  Ok ()
+
 let get_tile dynamo posn =
   Board.get dynamo.board posn
 
 let players dynamo =
   dynamo.players
+
+let dimensions dynamo =
+  Board.dimensions dynamo.board
