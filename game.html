@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>adventure game</title>
+    <style>
+      body {
+        background-color: #333;
+        color: #fff;
+        font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid" style="background-color: #DDFBFF">
+      <span style="color: #333;">harvest</span>
+      <span style="color: #333;"> . mine</span>
+      <span style="color: #333;"> . build</span>
+      <span style="color: #333;"> . attack</span>
+      <span style="color: #333;"> . talk</span>
+      <span style="color: #333;"> . enter</span>
+    </div>
+    <div class="container-fluid">
+      A grove of sycamore trees stands a few feet away.
+      Near to your feet are deep black rocks. A matte grey fortress
+      sits a bit behind the trees.
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="game.js"></script>
+    <script>
+      $(document).ready(function() { startGame(); });
+    </script>
+  </body>
+</html>

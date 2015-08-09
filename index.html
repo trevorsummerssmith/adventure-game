@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>adventure game</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <style>
       body {
         background-color: #333;
@@ -13,24 +14,21 @@
       }
     </style>
   </head>
-  <body>
-    <div class="container-fluid" style="background-color: #DDFBFF">
-      <span style="color: #333;">harvest</span>
-      <span style="color: #333;"> . mine</span>
-      <span style="color: #333;"> . build</span>
-      <span style="color: #333;"> . attack</span>
-      <span style="color: #333;"> . talk</span>
-      <span style="color: #333;"> . enter</span>
-    </div>
-    <div class="container-fluid">
-      A grove of sycamore trees stands a few feet away.
-      Near to your feet are deep black rocks. A matte grey fortress
-      sits a bit behind the trees.
-    </div>
+  <body style="background-color: #DDFBFF; color: #333; margin-left: 30px;">
+    <h1>welcome to</h1>
+    <h1>things that go unnoticed</h1>
+    <div class="dropdown">
+      <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+	please choose a character
+	<span class="caret"></span>
+      </button>
+      <ul id="players" class="dropdown-menu" aria-labelledby="dropdownMenu1"></ul>
+      </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <script src="game.js"></script>
     <script>
-      $(document).ready(function() { start(); });
+      $(document).ready(function() { loginPage(); });
     </script>
   </body>
 </html>

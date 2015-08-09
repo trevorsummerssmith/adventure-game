@@ -34,8 +34,20 @@ let handler dynamo body sock req =
   match path, C.Request.meth req with
   | "/", `GET
   | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
+  | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
   | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
+  | "/players", `GET ->
+    (* List players *)
+    let player_str =
+      Dynamo.players dynamo
+      |> Hashtbl.to_alist
+      |> List.map ~f:(fun (id,p) -> Printf.sprintf "\"%s\":\"%s\""
+                         (Uuid.to_string id)
+                         (Player.name p))
+      |> String.concat ~sep:"," in
+    let s = Printf.sprintf "{\"players\":{%s}}" player_str in
+    respond ~body:(CA.Body.of_string s) `OK
   | "/board", `GET -> (
       (* Should have x and y *)
       let uri = C.Request.uri req in
