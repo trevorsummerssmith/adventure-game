@@ -95,3 +95,6 @@ let players dynamo =
 
 let dimensions dynamo =
   Board.dimensions dynamo.board
+
+let game dynamo =
+  dynamo.game

@@ -146,6 +146,22 @@ let read_game_file filename =
       let s = In_channel.input_all ic in
       Sexp.of_string s |> Game.t_of_sexp)
 
+let install_signal_handlers dynamo =
+  (* Save the game to a datestamped file on sigint *)
+  Async_unix.Signal.handle [Signal.int] ~f:(fun s ->
+      info "Received ^C...";
+      let time_str = Time.now () |> Time.to_string in
+      let filename = Printf.sprintf "game-%s.game" time_str in
+      info "Saving game to: %s" filename;
+      Out_channel.with_file filename ~f:(fun oc ->
+          Dynamo.game dynamo
+          |> Game.sexp_of_t
+          |> Sexp.to_string
+          |> Out_channel.output_string oc);
+      (Log.Global.flushed () >>| fun () ->
+       exit 0) >>> (fun _ -> ())
+    )
+
 let start_server game_filename port key_file cert_file () =
   info "adventure game server is starting up!";
   info "Using game file %s" game_filename;
@@ -153,6 +169,7 @@ let start_server game_filename port key_file cert_file () =
   info "initializing game with %d actions..." (Game.num_ops game);
   let dynamo = Dynamo.create game in
   let () = Dynamo.run dynamo in
+  let () = install_signal_handlers dynamo in
   info "done with initialization!";
   let mode = determine_mode key_file cert_file in
   info "Listening for %s on port %d"

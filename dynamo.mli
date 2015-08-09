@@ -21,3 +21,5 @@ val get_tile : t -> Posn.t -> Tile.t
 val players : t -> (Uuid.t, Player.t) Hashtbl.t
 
 val dimensions : t -> Posn.t
+
+val game : t -> Game.t
