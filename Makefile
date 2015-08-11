@@ -1,5 +1,5 @@
 .PHONY: all
-all: server
+all: server gen_game
 
 server: adventure.ml
 	ocamlbuild adventure.native -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind \
