@@ -31,7 +31,7 @@ let take_action dynamo op =
   let open Game_op in
   let board = dynamo.board in
   let tile = Board.get board op.posn in
-  match op.op with
+  match op.code with
   | Add_player (name, id_op) ->
     (* 1) Generate new id for player 2) add to player structure 3) add to board *)
     let player = Player.create ?id:id_op ~name ~posn:op.posn in
@@ -106,7 +106,7 @@ let validate_player_message dynamo (id, time, text) posn : unit Or_error.t =
 let add_op dynamo op =
   let open Or_error.Monad_infix in
   let open Game_op in
-  let resp = match op.op with
+  let resp = match op.code with
     | Player_message (id, time, text) ->
       validate_player_message dynamo (id, time, text) op.posn
     | _ -> Ok ()

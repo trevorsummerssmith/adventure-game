@@ -1,6 +1,6 @@
 open Core.Std
 
-type op =
+type code =
   | Add_player of string * Uuid.t option
   (* Player name
      This op will create a new id for the player to be used in
@@ -15,8 +15,8 @@ type op =
 
 type t =
   { posn : Posn.t
-  ; op : op
+  ; code : code
   } with sexp
 
-let create op posn =
-  {op; posn}
+let create code posn =
+  {code; posn}
