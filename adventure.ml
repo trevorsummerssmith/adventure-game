@@ -35,13 +35,27 @@ let serve_file docroot uri =
 
 let respond_with_tile_description dynamo posn =
   let tile = Dynamo.get_tile dynamo posn in
-  let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %d players\"}"
-      (Tile.trees tile) (Tile.rocks tile) (Tile.players tile |> List.length)
+  let players = Dynamo.players dynamo in
+  let player_names = Tile.players tile
+                     |> List.map ~f:(Hashtbl.find_exn players)
+                     |> List.map ~f:Player.name
+                     |> String.concat ~sep:"," in
+  let messages_str = Tile.messages tile
+                     |> List.map ~f:(fun m ->
+                         Printf.sprintf "{\"playerName\":\"%s\",\"time\":\"%s\",\"text\":\"%s\"}"
+                           (m.Tile.player |> Hashtbl.find_exn players |> Player.name)
+                           (Time.to_string m.Tile.time)
+                           m.Tile.text)
+                     |> String.concat ~sep:", " in
+  let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %s players\",\"messages\":[%s]}"
+      (Tile.trees tile) (Tile.rocks tile) player_names messages_str
              |> CA.Body.of_string in
   respond ~body `OK
 
-let handle_player dynamo req body =
-  (* We should have playerId, lat and long get params *)
+let process_player_params dynamo req =
+  (* Process a request's player id and lat, long params.
+     From query params. Assert these values are uuid, float, etc.
+  *)
   let uri = C.Request.uri req in
   let q = Uri.get_query_param uri in
   match q "playerId", q "lat", q "long" with
@@ -58,15 +72,40 @@ let handle_player dynamo req body =
             (* TODO assumption board is a square *)
             let (x,_) = Dynamo.dimensions dynamo in
             let posn = Gps.to_posn ~tiles_per_side:x ~lat ~long in
-            let op = Game_op.(create (Move_player id) posn) in
-            match Dynamo.add_op dynamo op with
-            | Ok () -> (Dynamo.step dynamo; respond_with_tile_description dynamo posn)
-            | Error e -> bad_request (Error.to_string_hum e)
+            Ok (player, posn)
           end
-        | None -> bad_request "Unknown player"
-      with exn -> bad_request (Printf.sprintf "%s" (Exn.to_string exn))
+        | None -> Or_error.error_string "Unknown player"
+      with exn -> Or_error.error_string (Printf.sprintf "%s" (Exn.to_string exn))
     end
-  | _ -> bad_request "Player id, lat and long required"
+  | _ -> Or_error.error_string "Player id, lat and long required"
+
+let handle_player_action ~(f:Player.t -> Posn.t -> Game_op.t) dynamo req body =
+  (* We should have playerId, lat and long get params.
+     Assert and convert these params, then call the user function to generate
+     the op. Add the op to the game, step the game and return the description. *)
+  let open Or_error.Monad_infix in
+  (process_player_params dynamo req >>= fun (player, posn) ->
+   f player posn
+   |> Dynamo.add_op dynamo >>| fun () ->
+  Dynamo.step dynamo; dynamo, posn) |> function
+  | Ok (dynamo, posn) -> respond_with_tile_description dynamo posn
+  | Error e -> bad_request (Error.to_string_hum e)
+
+let handle_player dynamo req body =
+  let f player posn = Game_op.(create (Move_player (Player.id player)) posn) in
+  handle_player_action ~f dynamo req body
+
+let handle_message dynamo req body =
+  (* Assert message param *)
+  let uri = C.Request.uri req in
+  match Uri.get_query_param uri "message" with
+  | Some text ->
+    let f player posn =
+      let id = Player.id player in
+      Game_op.(create (Player_message (id,Time.now (),text)) posn)
+    in
+    handle_player_action ~f dynamo req body
+  | None -> bad_request "Must include message param"
 
 let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
@@ -76,6 +115,7 @@ let handler dynamo body sock req =
   | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
   | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
+  | "/message", `GET -> handle_message dynamo req body
   | "/player", `GET -> handle_player dynamo req body
   | "/players", `GET ->
     (* List players *)

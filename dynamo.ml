@@ -54,6 +54,14 @@ let take_action dynamo op =
     (* 3. Update player position *)
     let player = Player.move player op.posn in
     Hashtbl.replace dynamo.players ~key:id ~data:player
+  | Player_message (id, time, text) ->
+    (* Update tile with message. Re-sort to make sure its in time order *)
+    let msg = Tile.({player=id;time;text}) in
+    let tile = Board.get board op.posn in
+    let messages = msg :: (Tile.messages tile)
+                   |> List.sort ~cmp:(fun a b -> (Time.compare a.Tile.time b.Tile.time)) in
+    let tile = Tile.from ~messages tile in
+    Board.set board tile op.posn
   | Add_tree ->
     let trees = Tile.trees tile + 1 in
     Board.set board (Tile.from ~trees tile) op.posn
@@ -82,10 +90,30 @@ let run dynamo =
     step dynamo
   done
 
+let validate_player_message dynamo (id, time, text) posn : unit Or_error.t =
+  (* 1) Player must exist
+     2) Player must be on the same tile as where the talking is taking place
+     N.B. we're not doing any checks on the time right now
+  *)
+  match Hashtbl.find dynamo.players id with
+  | None -> Or_error.error_string "Player not found"
+  | Some p ->
+    if (Player.posn p) = posn then
+      Ok ()
+    else
+      Or_error.error_string "Player not on right position."
+
 let add_op dynamo op =
+  let open Or_error.Monad_infix in
+  let open Game_op in
+  let resp = match op.op with
+    | Player_message (id, time, text) ->
+      validate_player_message dynamo (id, time, text) op.posn
+    | _ -> Ok ()
+  in
+  resp >>| fun () ->
   let game = Game.add_op dynamo.game op in
-  let () = dynamo.game <- game in
-  Ok ()
+  dynamo.game <- game
 
 let get_tile dynamo posn =
   Board.get dynamo.board posn

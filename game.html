@@ -13,6 +13,9 @@
       }
 
       a { color: white; }
+
+      #messages { padding-left: 0px; }
+      #messages li {list-style: none;}
     </style>
   </head>
   <body>
@@ -29,11 +32,18 @@
       Near to your feet are deep black rocks. A matte grey fortress
       sits a bit behind the trees.
     </div>
+    <h2>messages</h2>
+    <ul id="messages" style="height: 300px; overflow-y: auto;"></ul>
     <form>
       <input type="text" name="x" id="x"></input>
       <input type="text" name="y" id="y"></input>
       <a href="#" onclick="getLocation();">Get location</a>
       <a href="#" onclick="sendLocation();">Send location</a>
+    </form>
+    <form>
+      <label for="message">Message</label>
+      <input type="text" name="message" id="message"></input>
+      <a href="#" onclick="sendMessage();">Chat</a>
     </form>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="game.js"></script>

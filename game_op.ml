@@ -6,6 +6,8 @@ type op =
      This op will create a new id for the player to be used in
      all subsequent player ops *)
   | Move_player of Uuid.t
+  | Player_message of Uuid.t * Time.t * string
+  (* Player id, time message occurred in utc, message *)
   | Add_tree
   | Remove_tree
   | Add_rock

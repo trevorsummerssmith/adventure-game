@@ -58,6 +58,34 @@ function getLocation() {
     }
 }
 
+function displayDescriptionResponse(obj) {
+    // Response object from the server parsed.
+    // Should have desc and messages fields
+    $("#game-text").text(obj.desc);
+    var s = "";
+    for (var i = 0; i < obj.messages.length; i++) {
+	var msg = obj.messages[i];
+	s += "<li>"
+	// Format date as: 13:23:44 09/08/15
+	var d = new Date(Date.parse(msg.time));
+	s += padInt(d.getHours()) + ":" + padInt(d.getMinutes()) + ":" + padInt(d.getSeconds());
+	s += " ";
+	s += padInt((d.getMonth() + 1)) + "/" + padInt(d.getDate()) + "/" + d.getFullYear().toString().substring(2,4);
+	s += " ";
+	s += msg.playerName
+	s += ": ";
+	s += msg.text;
+	s += "</li>";
+    }
+    var msgs = $("#messages");
+    msgs.empty();
+    msgs.append($(s));
+    // After appending messages, scroll to the bottom
+    if (msgs.length) {
+	msgs.scrollTop(msgs[0].scrollHeight - msgs.height());
+    }
+}
+
 function sendLocation() {
     var x = $("#x").val();
     var y = $("#y").val();
@@ -66,7 +94,33 @@ function sendLocation() {
 	url:"/player",
 	data: {lat : y, long: x, playerId: PLAYER_ID},
 	success: function(data, status, jqXHR) {
-	    $("#game-text").text(data);
+	    var obj = jQuery.parseJSON(data); //$("#game-text").text(data);
+	    displayDescriptionResponse(obj);
+	}
+    });
+}
+
+function padInt(n) {
+    var s = n.toString();
+    if (n < 10) {
+	return '0' + s;
+    } else {
+	return s;
+    }
+}
+
+function sendMessage() {
+    var x = $("#x").val();
+    var y = $("#y").val();
+    var message = $("#message").val();
+    // TODO assert all the above are valid
+    $.ajax({
+	method:"GET",
+	url:"/message",
+	data: {lat : y, long : x, playerId: PLAYER_ID, message: message},
+	success: function(data, status, jqXHR) {
+	    var obj = jQuery.parseJSON(data);
+	    displayDescriptionResponse(obj);
 	}
     });
 }
