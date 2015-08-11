@@ -31,7 +31,7 @@ let empty_apply _ =
   let game = Game.create [] (1,1) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
-  assert_equal Tile.empty_tile (Dynamo.get_tile dynamo (0,0))
+  assert_equal Tile.empty (Dynamo.get_tile dynamo (0,0))
 
 let add_one_player _ =
   (* Insure
@@ -46,7 +46,7 @@ let add_one_player _ =
   let (id,player) = List.hd_exn players in
   assert_equal "Purple Player" (Player.name player);
   assert_equal (2,2) (Player.posn player);
-  assert_equal (Tile.from ~players:[id] Tile.empty_tile) (Dynamo.get_tile dynamo (2,2))
+  assert_equal (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (2,2))
 
 let add_three_players_two_to_same_tile _ =
   (* lets make sure that adding a few players keeps the right state *)
@@ -77,8 +77,8 @@ let move_one_player _ =
   let dynamo = run_with_ops ops in
   let player = Hashtbl.find_exn (Dynamo.players dynamo) id in
   assert_equal (3,3) (Player.posn player);
-  assert_equal Tile.empty_tile (Dynamo.get_tile dynamo (2,2));
-  assert_equal (Tile.from ~players:[id] Tile.empty_tile) (Dynamo.get_tile dynamo (3,3))
+  assert_equal Tile.empty (Dynamo.get_tile dynamo (2,2));
+  assert_equal (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (3,3))
 
 let run_player_message _ =
   let open Game_op in
@@ -94,7 +94,7 @@ let run_player_message _ =
   let tile = Dynamo.get_tile dynamo (2,3) in
   let correct_tile = Tile.(from ~players:[id]
                              ~messages:[{player=id;time;text}]
-                             empty_tile) in
+                             empty) in
   assert_equal correct_tile tile
 
 let run_player_message_good _ =
@@ -109,7 +109,7 @@ let run_player_message_good _ =
   let tile = Dynamo.get_tile dynamo (2,3) in
   let correct_tile = Tile.(from ~players:[id]
                              ~messages:[{player=id;time;text}]
-                             empty_tile) in
+                             empty) in
   assert_equal correct_tile tile
 
 let add_player_message_valid _ =
@@ -152,13 +152,13 @@ let add_tree _ =
   let game = Game.create [Game_op.(create Add_tree (1,2))] (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
-  assert_equal (Tile.from ~trees:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~trees:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let add_rock _ =
   let game = Game.create [Game_op.(create Add_rock (1,2))] (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
-  assert_equal (Tile.from ~rocks:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~rocks:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let add_rock_and_tree_same_tile _ =
   let ops = Game_op.([create Add_rock (1,2);
@@ -167,7 +167,7 @@ let add_rock_and_tree_same_tile _ =
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
   let () = Dynamo.step dynamo in
-  assert_equal (Tile.from ~trees:1 ~rocks:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~trees:1 ~rocks:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let add_rock_and_tree_different_tiles _ =
   let ops = Game_op.([create Add_rock (2,3);
@@ -176,8 +176,8 @@ let add_rock_and_tree_different_tiles _ =
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
   let () = Dynamo.step dynamo in
-  assert_equal (Tile.from ~rocks:1 Tile.empty_tile) (Dynamo.get_tile dynamo (2,3));
-  assert_equal (Tile.from ~trees:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~rocks:1 Tile.empty) (Dynamo.get_tile dynamo (2,3));
+  assert_equal (Tile.from ~trees:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let multiple_adds _ =
   let ops = Game_op.([create Add_rock (2,3);
@@ -191,9 +191,9 @@ let multiple_adds _ =
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.run dynamo in
-  assert_equal (Tile.from ~trees:1 ~rocks:2 Tile.empty_tile) (Dynamo.get_tile dynamo (2,3));
-  assert_equal (Tile.from ~trees:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2));
-  assert_equal (Tile.from ~rocks:3 Tile.empty_tile) (Dynamo.get_tile dynamo (5,5))
+  assert_equal (Tile.from ~trees:1 ~rocks:2 Tile.empty) (Dynamo.get_tile dynamo (2,3));
+  assert_equal (Tile.from ~trees:1 Tile.empty) (Dynamo.get_tile dynamo (1,2));
+  assert_equal (Tile.from ~rocks:3 Tile.empty) (Dynamo.get_tile dynamo (5,5))
 
 let remove_tree _ =
   let ops = Game_op.([create Add_rock (1,2);
@@ -202,7 +202,7 @@ let remove_tree _ =
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.run dynamo in
-  assert_equal (Tile.from ~rocks:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~rocks:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let remove_rock _ =
   let ops = Game_op.([create Add_rock (1,2);
@@ -211,19 +211,19 @@ let remove_rock _ =
   let game = Game.create ops (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.run dynamo in
-  assert_equal (Tile.from ~trees:1 Tile.empty_tile) (Dynamo.get_tile dynamo (1,2))
+  assert_equal (Tile.from ~trees:1 Tile.empty) (Dynamo.get_tile dynamo (1,2))
 
 let illegal_remove_tree _ =
   let game = Game.create [Game_op.(create Remove_tree (1,2))] (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
-  assert_equal Tile.empty_tile (Dynamo.get_tile dynamo (1,2))
+  assert_equal Tile.empty (Dynamo.get_tile dynamo (1,2))
 
 let illegal_remove_rock _ =
   let game = Game.create [Game_op.(create Remove_rock (1,2))] (10,10) in
   let dynamo = Dynamo.create game in
   let () = Dynamo.step dynamo in
-  assert_equal Tile.empty_tile (Dynamo.get_tile dynamo (1,2))
+  assert_equal Tile.empty (Dynamo.get_tile dynamo (1,2))
 
 let suite =
   "dynamo suite">:::

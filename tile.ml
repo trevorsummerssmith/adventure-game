@@ -28,7 +28,7 @@ let from ?trees ?rocks ?players ?messages tile =
   ; messages = Option.value ~default:tile.messages messages
   }
 
-let empty_tile =
+let empty =
   { trees=0
   ; rocks=0
   ; players=[]

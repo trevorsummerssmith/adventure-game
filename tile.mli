@@ -23,7 +23,7 @@ val from :
   -> t
   -> t
 
-val empty_tile : t
+val empty : t
 
 val trees : t -> int
 val rocks : t -> int

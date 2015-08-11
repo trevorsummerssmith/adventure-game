@@ -6,7 +6,7 @@ type t =
   } with sexp
 
 let create (width, height) =
-  let board = Array.make_matrix ~dimx:width ~dimy:height Tile.empty_tile in
+  let board = Array.make_matrix ~dimx:width ~dimy:height Tile.empty in
   {board; dimensions=(width,height)}
 
 let assert_bounds board (x, y) : unit =
