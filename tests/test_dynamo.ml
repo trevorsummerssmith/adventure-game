@@ -37,9 +37,9 @@ let assert_players_on_board dynamo =
         (List.sort ~cmp:Uuid.compare ids)
     ) players_by_posn
 
-let make_tile (resources : (Resources.kind,int) List.Assoc.t) =
+let make_tile ?(players=[]) (resources : (Resources.kind,int) List.Assoc.t) =
   let resources = Resources.of_alist_exn resources in
-  Tile.from ~resources Tile.empty
+  Tile.from ~players ~resources Tile.empty
 
 let empty_apply _ =
   let game = Game.create [] (1,1) in
@@ -166,16 +166,18 @@ let add_and_run_player_harvest_wood_success _ =
   let open Game_op in
   let id = Uuid.create () in
   let ops = [create (Add_player ("Awesome Andy", Some id)) (2,3);
-             create Add_tree (2,3);] in
+             create Add_tree (2,3);
+             create Add_tree (2,3);
+             create Add_rock (2,3);
+             create Add_rock (2,3);] in
   let dynamo = run_with_ops ops in
-  let op = create (Player_harvest (id, Resources.Wood)) (2,3) in
-  let resp = Dynamo.add_op dynamo op in
-  let () = assert_equal Result.ok_unit resp in
-  let () = Dynamo.step dynamo in
+  create (Player_harvest (id, Resources.Wood)) (2,3)
+  |> Dynamo.add_op dynamo
+  |> assert_equal Result.ok_unit;
+  Dynamo.step dynamo;
   assert_equal 1 (Hashtbl.find_exn (Dynamo.players dynamo) id
                   |> Player.resources |> Resources.get ~kind:Resources.Wood);
-  assert_equal 0 (Dynamo.get_tile dynamo (2,3)
-                  |> Tile.resources |> Resources.get ~kind:Resources.Wood)
+  ae_tile (make_tile ~players:[id] Resources.([Wood, 1; Rock, 2])) (Dynamo.get_tile dynamo (2,3))
 
 let add_player_harvest_failure_no_resource _ =
   let open Game_op in

@@ -65,7 +65,7 @@ let take_action dynamo op =
     Board.set board tile op.posn
   | Player_harvest (id,kind) ->
     (* 1. Update the player 2. Update the board *)
-    let amt = Tile.resources tile |> Resources.get ~kind |> (-) 1 in
+    let amt = (Tile.resources tile |> Resources.get ~kind) - 1 in
     let () = assert (amt >= 0) in
     let player = Hashtbl.find_exn dynamo.players id in
     let player = player
