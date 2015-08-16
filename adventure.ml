@@ -4,6 +4,7 @@ module C = Cohttp
 module CA = Cohttp_async
 
 let info = Log.Global.info
+let debug = Log.Global.debug
 
 let respond ?(flush) ?(headers) ?(body) status_code =
   (* Wrapper around Server.respond so that we can catch the Server.respond
@@ -71,7 +72,8 @@ let process_player_params dynamo req =
           begin
             (* TODO assumption board is a square *)
             let (x,_) = Dynamo.dimensions dynamo in
-            let posn = Gps.to_posn ~tiles_per_side:x ~lat ~long in
+            let (x,y) as posn = Gps.to_posn ~tiles_per_side:x ~lat ~long in
+            debug "Location convertion: %f, %f -> (%d,%d)" lat long x y;
             Ok (player, posn)
           end
         | None -> Or_error.error_string "Unknown player"
@@ -203,6 +205,7 @@ let install_signal_handlers dynamo =
     )
 
 let start_server game_filename no_exit_save port key_file cert_file () =
+  Log.Global.set_level `Debug;
   info "adventure game server is starting up!";
   info "Using game file %s" game_filename;
   let game = read_game_file game_filename in
