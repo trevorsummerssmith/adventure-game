@@ -9,15 +9,13 @@ type message =
 type t with sexp, compare
 
 val create :
-  trees:int
-  -> rocks:int
+  resources:Resources.t
   -> players:Uuid.t list
   -> messages:message list
   -> t
 
 val from :
-  ?trees:int
-  -> ?rocks:int
+  ?resources:Resources.t
   -> ?players:Uuid.t list
   -> ?messages:message list
   -> t
@@ -25,7 +23,8 @@ val from :
 
 val empty : t
 
-val trees : t -> int
-val rocks : t -> int
+val with_resources : t -> Resources.t -> t
+
+val resources : t -> Resources.t
 val players : t -> Uuid.t list
 val messages : t -> message list

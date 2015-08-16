@@ -7,37 +7,34 @@ type message =
   } with sexp, compare
 
 type t =
-  { trees : int
-  ; rocks : int
-  ; players : Uuid.t list
-  ; messages : message list
+  { resources : Resources.t
+  ; players   : Uuid.t list
+  ; messages  : message list
   (* Head of messages is oldest message *)
   } with sexp, compare
 
-let create ~trees ~rocks ~players ~messages =
-  { trees
-  ; rocks
+let create ~resources ~players ~messages =
+  { resources
   ; players
   ; messages
   }
 
-let from ?trees ?rocks ?players ?messages tile =
-  { trees = Option.value ~default:tile.trees trees
-  ; rocks = Option.value ~default:tile.rocks rocks
+let from ?resources ?players ?messages tile =
+  { resources = Option.value ~default:tile.resources resources
   ; players = Option.value ~default:tile.players players
   ; messages = Option.value ~default:tile.messages messages
   }
 
 let empty =
-  { trees=0
-  ; rocks=0
+  { resources = Resources.empty
   ; players=[]
   ; messages=[]
   }
 
-let trees tile = tile.trees
+let with_resources t resources =
+  {t with resources}
 
-let rocks tile = tile.rocks
+let resources tile = tile.resources
 
 let players tile = tile.players
 

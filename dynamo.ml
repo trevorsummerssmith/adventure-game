@@ -34,7 +34,8 @@ let take_action dynamo op =
   match op.code with
   | Add_player (name, id_op) ->
     (* 1) Generate new id for player 2) add to player structure 3) add to board *)
-    let player = Player.create ?id:id_op ~name ~posn:op.posn in
+    let player = Player.create ?id:id_op
+        ~resources:Resources.empty ~name ~posn:op.posn in
     let id = Player.id player in
     let () = Hashtbl.add_exn dynamo.players ~key:(Player.id player) ~data:player in
     let tile = Board.get board op.posn in
@@ -62,20 +63,40 @@ let take_action dynamo op =
                    |> List.sort ~cmp:(fun a b -> (Time.compare a.Tile.time b.Tile.time)) in
     let tile = Tile.from ~messages tile in
     Board.set board tile op.posn
+  | Player_harvest (id,kind) ->
+    (* 1. Update the player 2. Update the board *)
+    let amt = Tile.resources tile |> Resources.get ~kind |> (-) 1 in
+    let () = assert (amt >= 0) in
+    let player = Hashtbl.find_exn dynamo.players id in
+    let player = player
+                 |> Player.resources
+                 |> Resources.incr ~kind
+                 |> Player.with_resources player in
+    Hashtbl.replace dynamo.players ~key:id ~data:player;
+    let tile = Tile.resources tile
+               |> Resources.decr ~kind
+               |> Tile.with_resources tile in
+    Board.set board tile op.posn
   | Add_tree ->
-    let trees = Tile.trees tile + 1 in
-    Board.set board (Tile.from ~trees tile) op.posn
+    let tile = Tile.resources tile
+               |> Resources.incr ~kind:Resources.Wood
+               |> Tile.with_resources tile in
+    Board.set board tile op.posn
   | Remove_tree ->
-    let trees = if (Tile.trees tile) = 0 then 0
-      else (Tile.trees tile) - 1 in
-    Board.set board (Tile.from ~trees tile) op.posn
+    let tile = Tile.resources tile
+               |> Resources.decr ~kind:Resources.Wood
+               |> Tile.with_resources tile in
+    Board.set board tile op.posn
   | Add_rock ->
-    let rocks = (Tile.rocks tile) + 1 in
-    Board.set board (Tile.from ~rocks tile) op.posn
+    let tile = Tile.resources tile
+               |> Resources.incr ~kind:Resources.Rock
+               |> Tile.with_resources tile in
+    Board.set board tile op.posn
   | Remove_rock ->
-    let rocks = if (Tile.rocks tile) = 0 then 0
-      else (Tile.rocks tile) - 1 in
-    Board.set board (Tile.from ~rocks tile) op.posn
+    let tile = Tile.resources tile
+               |> Resources.decr ~kind:Resources.Rock
+               |> Tile.with_resources tile in
+    Board.set board tile op.posn
 
 let step dynamo =
   if dynamo.tick >= Game.num_ops dynamo.game then
@@ -90,18 +111,36 @@ let run dynamo =
     step dynamo
   done
 
-let validate_player_message dynamo (id, time, text) posn : unit Or_error.t =
-  (* 1) Player must exist
-     2) Player must be on the same tile as where the talking is taking place
-     N.B. we're not doing any checks on the time right now
-  *)
+let validate_player_and_posn dynamo id posn =
+  (* 1 Player must exist
+     2 Player is on the same position as posn *)
   match Hashtbl.find dynamo.players id with
   | None -> Or_error.error_string "Player not found"
   | Some p ->
     if (Player.posn p) = posn then
-      Ok ()
+      Result.ok_unit
     else
       Or_error.error_string "Player not on right position."
+
+let validate_player_message dynamo (id, _time, _text) posn : unit Or_error.t =
+  (* 1 Player must exist
+     2 Player must be on the same tile as where the talking is taking place
+     N.B. we're not doing any checks on the time right now
+  *)
+  validate_player_and_posn dynamo id posn
+
+let validate_player_harvest dynamo id posn kind : unit Or_error.t =
+  (* 1 Player must exist
+     2 Player must be on right tile
+     3 There must be resource >= 1
+  *)
+  let open Or_error.Monad_infix in
+  validate_player_and_posn dynamo id posn >>= fun () ->
+  let amt = Board.get dynamo.board posn |> Tile.resources |> Resources.get ~kind in
+  if amt >= 1 then
+    Result.ok_unit
+  else
+    Or_error.error_string "Must be >= 1 resource to harvest"
 
 let add_op dynamo op =
   let open Or_error.Monad_infix in
@@ -109,6 +148,8 @@ let add_op dynamo op =
   let resp = match op.code with
     | Player_message (id, time, text) ->
       validate_player_message dynamo (id, time, text) op.posn
+    | Player_harvest (id,kind) ->
+      validate_player_harvest dynamo id op.posn kind
     | _ -> Ok ()
   in
   resp >>| fun () ->

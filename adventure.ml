@@ -48,8 +48,11 @@ let respond_with_tile_description dynamo posn =
                            (Time.to_string m.Tile.time)
                            m.Tile.text)
                      |> String.concat ~sep:", " in
+  let resources kind = Tile.resources tile |> Resources.get ~kind in
   let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %s players\",\"messages\":[%s]}"
-      (Tile.trees tile) (Tile.rocks tile) player_names messages_str
+      (resources Resources.Wood)
+      (resources Resources.Rock)
+      player_names messages_str
              |> CA.Body.of_string in
   respond ~body `OK
 

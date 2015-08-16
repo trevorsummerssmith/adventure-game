@@ -8,6 +8,8 @@ type code =
   | Move_player of Uuid.t
   | Player_message of Uuid.t * Time.t * string
   (* Player id, time message occurred in utc, message *)
+  | Player_harvest of Uuid.t * Resources.kind
+  (* Player id, kind of resource to harvest *)
   | Add_tree
   | Remove_tree
   | Add_rock
