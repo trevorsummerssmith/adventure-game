@@ -1,13 +1,13 @@
 .PHONY: all
 all: server gen_game
 
+OCAMLBUILD=ocamlbuild -use-ocamlfind -plugin-tag "package(ocamlbuild_atdgen)"
+
 server: adventure.ml
-	ocamlbuild adventure.native -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind -plugin-tag "package(ocamlbuild_atdgen)" -pkg atdgen \
-	-syntax camlp4o -pkg sexplib.syntax,comparelib.syntax
+	$(OCAMLBUILD) adventure.native
 
 gen_game: gen_game.ml
-	ocamlbuild gen_game.native -syntax camlp4o -pkg sexplib.syntax,comparelib.syntax,fieldslib.syntax -pkg core -pkg async -pkg uri \
-	-pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind -plugin-tag "package(ocamlbuild_atdgen)" -pkg atdgen
+	$(OCAMLBUILD) gen_game.native
 
 .PHONY: clean
 clean:
@@ -15,4 +15,4 @@ clean:
 
 .PHONY: tests
 tests:
-	ocamlbuild tests/test_runner.native -Is tests -Is . -pkg core -pkg async -pkg uri -pkg cohttp -pkg cohttp.async -pkg conduit -tag thread -use-ocamlfind -syntax camlp4o -pkg sexplib.syntax,comparelib.syntax -pkg oUnit && ./test_runner.native
+	$(OCAMLBUILD) -Is tests tests/test_runner.native && ./test_runner.native
