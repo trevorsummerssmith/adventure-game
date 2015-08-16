@@ -61,10 +61,12 @@ function getLocation() {
 function displayDescriptionResponse(obj) {
     // Response object from the server parsed.
     // Should have desc and messages fields
-    $("#game-text").text(obj.desc);
+    var tile = obj.tile;
+    var player = obj.player;
+    $("#game-text").text(tile.desc);
     var s = "";
-    for (var i = 0; i < obj.messages.length; i++) {
-	var msg = obj.messages[i];
+    for (var i = 0; i < tile.messages.length; i++) {
+	var msg = tile.messages[i];
 	s += "<li>"
 	// Format date as: 13:23:44 09/08/15
 	var d = new Date(Date.parse(msg.time));
@@ -84,17 +86,59 @@ function displayDescriptionResponse(obj) {
     if (msgs.length) {
 	msgs.scrollTop(msgs[0].scrollHeight - msgs.height());
     }
+
+    // Update player status
+    $("#wood").text(player.wood);
+    $("#rock").text(player.rock);
+}
+
+function get_posn() {
+    return {long:$("#x").val(),
+	    lat:$("#y").val()}
+}
+
+function make_player_request_dict () {
+    var posn = get_posn();
+    return {lat : posn.lat,
+	    long : posn.long,
+	    playerId : PLAYER_ID}
+}
+
+function updateErrorDisplay (errorObj) {
+    alert("Error: " + errorObj.msg);
+}
+
+var RESOURCE_KIND_WOOD = "wood";
+var RESOURCE_KIND_ROCK = "rock";
+
+function doHarvest(kind) {
+    // Kind is a string, use constants
+    var data = make_player_request_dict();
+    data['kind'] = kind
+    $.ajax({
+	method:"GET",
+	url:"/harvest",
+	data: data,
+	success: function(data, status, jqXHR) {
+	    var obj = jQuery.parseJSON(data);
+	    displayDescriptionResponse(obj);
+	},
+	error: function(jqXHR, textStatus, errorThrown) {
+	    if (errorThrown == "Bad Request") {
+		var errorObj = jQuery.parseJSON(jqXHR.responseText);
+		updateErrorDisplay(errorObj);
+	    }
+	}
+    });
 }
 
 function sendLocation() {
-    var x = $("#x").val();
-    var y = $("#y").val();
     $.ajax({
 	method:"GET",
 	url:"/player",
-	data: {lat : y, long: x, playerId: PLAYER_ID},
+	data:make_player_request_dict(),
 	success: function(data, status, jqXHR) {
-	    var obj = jQuery.parseJSON(data); //$("#game-text").text(data);
+	    var obj = jQuery.parseJSON(data)
 	    displayDescriptionResponse(obj);
 	}
     });
@@ -110,14 +154,13 @@ function padInt(n) {
 }
 
 function sendMessage() {
-    var x = $("#x").val();
-    var y = $("#y").val();
-    var message = $("#message").val();
+    var data = make_player_request_dict();
+    data['message'] = $("#message").val();
     // TODO assert all the above are valid
     $.ajax({
 	method:"GET",
 	url:"/message",
-	data: {lat : y, long : x, playerId: PLAYER_ID, message: message},
+	data: data,
 	success: function(data, status, jqXHR) {
 	    var obj = jQuery.parseJSON(data);
 	    displayDescriptionResponse(obj);

@@ -34,25 +34,42 @@ let serve_file docroot uri =
   CA.Server.resolve_local_file ~docroot ~uri
   |> respond_with_file
 
-let respond_with_tile_description dynamo posn =
+let make_tile_payload dynamo posn =
   let tile = Dynamo.get_tile dynamo posn in
   let players = Dynamo.players dynamo in
   let player_names = Tile.players tile
                      |> List.map ~f:(Hashtbl.find_exn players)
                      |> List.map ~f:Player.name
                      |> String.concat ~sep:"," in
-  let messages_str = Tile.messages tile
-                     |> List.map ~f:(fun m ->
-                         Printf.sprintf "{\"playerName\":\"%s\",\"time\":\"%s\",\"text\":\"%s\"}"
-                           (m.Tile.player |> Hashtbl.find_exn players |> Player.name)
-                           (Time.to_string m.Tile.time)
-                           m.Tile.text)
-                     |> String.concat ~sep:", " in
+  let messages = Tile.messages tile
+                 |> List.map ~f:(fun m ->
+                     let player_name = m.Tile.player |> Hashtbl.find_exn players |> Player.name in
+                     let time = Time.to_string m.Tile.time in
+                     let text = m.Tile.text in
+                     Payloads_t.({ player_name
+                                ; time
+                                ; text })
+                   ) in
   let resources kind = Tile.resources tile |> Resources.get ~kind in
-  let body = Printf.sprintf "{\"desc\":\"A small field with %d trees and %d rocks and %s players\",\"messages\":[%s]}"
+  let desc = Printf.sprintf "A small field with %d trees and %d rocks and %s players"
       (resources Resources.Wood)
       (resources Resources.Rock)
-      player_names messages_str
+      player_names in
+  Payloads_t.({desc; messages})
+
+let respond_with_tile_description_and_player dynamo id posn =
+  let player = Hashtbl.find_exn (Dynamo.players dynamo) id in
+  let resources = Player.resources player in
+  let wood = Resources.get resources ~kind:Resources.Wood in
+  let rock = Resources.get resources ~kind:Resources.Rock in
+  let player_status = Payloads_t.({wood; rock}) in
+
+  (* Make the tile *)
+  let tile = make_tile_payload dynamo posn in
+  let response = Payloads_t.({tile; player_status}) in
+
+  (* Return the text *)
+  let body = Payloads_j.string_of_response response
              |> CA.Body.of_string in
   respond ~body `OK
 
@@ -92,8 +109,8 @@ let handle_player_action ~(f:Player.t -> Posn.t -> Game_op.t) dynamo req body =
   (process_player_params dynamo req >>= fun (player, posn) ->
    f player posn
    |> Dynamo.add_op dynamo >>| fun () ->
-  Dynamo.step dynamo; dynamo, posn) |> function
-  | Ok (dynamo, posn) -> respond_with_tile_description dynamo posn
+  Dynamo.step dynamo; dynamo, player, posn) |> function
+  | Ok (dynamo, player, posn) -> respond_with_tile_description_and_player dynamo (Player.id player) posn
   | Error e -> bad_request (Error.to_string_hum e)
 
 let handle_player dynamo req body =
@@ -112,6 +129,19 @@ let handle_message dynamo req body =
     handle_player_action ~f dynamo req body
   | None -> bad_request "Must include message param"
 
+let handle_player_harvest dynamo req body =
+  (* Assert kind *)
+  let uri = C.Request.uri req in
+  match Uri.get_query_param uri "kind" with
+  | None -> bad_request "Must include resource kind"
+  | Some text ->
+    let kind = Resources.kind_of_string text in
+    let f player posn =
+      let id = Player.id player in
+      Game_op.(create (Player_harvest (id,kind)) posn)
+    in
+    handle_player_action ~f dynamo req body
+
 let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
   match path, C.Request.meth req with
@@ -119,6 +149,7 @@ let handler dynamo body sock req =
   | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
   | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
   | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
+  | "/harvest", `GET -> handle_player_harvest dynamo req body
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
   | "/message", `GET -> handle_message dynamo req body
   | "/player", `GET -> handle_player dynamo req body
@@ -139,8 +170,11 @@ let handler dynamo body sock req =
       match Uri.get_query_param uri "x", Uri.get_query_param uri "y" with
       | Some x, Some y ->
         (try
-           let x, y = Int.of_string x, Int.of_string y in
-           respond_with_tile_description dynamo (x,y)
+           let posn = Int.of_string x, Int.of_string y in
+           let body = make_tile_payload dynamo posn
+                      |> Payloads_j.string_of_tile
+                      |> CA.Body.of_string in
+           respond ~body `OK
          with exn -> bad_request (Exn.to_string exn))
       | _, _ -> bad_request "x and y params required"
     )

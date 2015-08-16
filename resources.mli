@@ -4,6 +4,8 @@ type kind =
   | Wood
   | Rock with sexp, compare
 
+val kind_of_string : string -> kind
+
 type t with sexp, compare
 
 val empty : t

@@ -10,6 +10,11 @@ type kind =
   | Wood
   | Rock with sexp, compare
 
+let kind_of_string = function
+  | "wood" -> Wood
+  | "rock" -> Rock
+  | s -> failwith ("Unknown kind: " ^ s)
+
 type t = (kind, int) Map.Poly.t with sexp, compare
 
 let empty = Map.Poly.of_alist_exn [Wood, 0; Rock, 0]

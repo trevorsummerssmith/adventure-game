@@ -20,13 +20,17 @@
     </style>
   </head>
   <body>
-    <div class="container-fluid" style="background-color: #DDFBFF">
-      <span style="color: #333;">harvest</span>
-      <span style="color: #333;"> . mine</span>
+    <div class="container-fluid" style="background-color: #DDFBFF;">
+      <span style="color: #333;"><a href="#" onclick="doHarvest(RESOURCE_KIND_WOOD);">harvest</a></span>
+      <span style="color: #333;"> . <a href="#" onclick="doHarvest(RESOURCE_KIND_ROCK);">mine</a></span>
       <span style="color: #333;"> . build</span>
       <span style="color: #333;"> . attack</span>
       <span style="color: #333;"> . talk</span>
       <span style="color: #333;"> . enter</span>
+    </div>
+    <div class="container-fluid" style="background-color: #DDFBFF; margin-bottom: 10px;">
+      <span style="color: #333;">&gt;&gt;&gt; wood: <span id="wood">-</span></span>
+      <span style="color: #333;">rock: <span id="rock">-</span></span>
     </div>
     <div id="game-text" class="container-fluid">
       A grove of sycamore trees stands a few feet away.

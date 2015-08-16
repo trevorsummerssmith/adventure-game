@@ -1,0 +1,20 @@
+type message =
+  { player_name <json name="playerName"> : string
+  ; time : string
+  ; text : string
+  }
+
+type tile =
+  { desc : string
+  ; messages : message list
+  }
+
+type player_status =
+  { wood : int
+  ; rock : int
+  }
+
+type response =
+  { tile : tile
+  ; player_status <json name="player"> : player_status
+  }
