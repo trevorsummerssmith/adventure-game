@@ -77,24 +77,14 @@ let take_action dynamo op =
                |> Resources.decr ~kind
                |> Tile.with_resources tile in
     Board.set board tile op.posn
-  | Add_tree ->
+  | Add_resource kind ->
     let tile = Tile.resources tile
-               |> Resources.incr ~kind:Resources.Wood
+               |> Resources.incr ~kind
                |> Tile.with_resources tile in
     Board.set board tile op.posn
-  | Remove_tree ->
+  | Remove_resource kind ->
     let tile = Tile.resources tile
-               |> Resources.decr ~kind:Resources.Wood
-               |> Tile.with_resources tile in
-    Board.set board tile op.posn
-  | Add_rock ->
-    let tile = Tile.resources tile
-               |> Resources.incr ~kind:Resources.Rock
-               |> Tile.with_resources tile in
-    Board.set board tile op.posn
-  | Remove_rock ->
-    let tile = Tile.resources tile
-               |> Resources.decr ~kind:Resources.Rock
+               |> Resources.decr ~kind
                |> Tile.with_resources tile in
     Board.set board tile op.posn
 

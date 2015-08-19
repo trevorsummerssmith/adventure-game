@@ -166,10 +166,10 @@ let add_and_run_player_harvest_wood_success _ =
   let open Game_op in
   let id = Uuid.create () in
   let ops = [create (Add_player ("Awesome Andy", Some id)) (2,3);
-             create Add_tree (2,3);
-             create Add_tree (2,3);
-             create Add_rock (2,3);
-             create Add_rock (2,3);] in
+             create (Add_resource Resources.Wood) (2,3);
+             create (Add_resource Resources.Wood) (2,3);
+             create (Add_resource Resources.Rock) (2,3);
+             create (Add_resource Resources.Rock) (2,3);] in
   let dynamo = run_with_ops ops in
   create (Player_harvest (id, Resources.Wood)) (2,3)
   |> Dynamo.add_op dynamo
@@ -192,81 +192,64 @@ let add_player_harvest_failure_no_resource _ =
     assert_equal 1 (Dynamo.game dynamo |> Game.num_ops)
 
 let add_tree _ =
-  let game = Game.create [Game_op.(create Add_tree (1,2))] (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
+  let dynamo = run_with_ops
+      [Game_op.(create (Add_resource Resources.Wood) (1,2))] in
   ae_tile (make_tile [Resources.Wood,1]) (Dynamo.get_tile dynamo (1,2))
 
 let add_rock _ =
-  let game = Game.create [Game_op.(create Add_rock (1,2))] (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
+  let dynamo = run_with_ops
+      [Game_op.(create (Add_resource Resources.Rock) (1,2))] in
   ae_tile (make_tile [Resources.Rock,1]) (Dynamo.get_tile dynamo (1,2))
 
 let add_rock_and_tree_same_tile _ =
-  let ops = Game_op.([create Add_rock (1,2);
-                      create Add_tree (1,2)]) in
-  let game = Game.create ops (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
-  let () = Dynamo.step dynamo in
-  ae_tile (make_tile [Resources.Rock,1; Resources.Wood,1] ) (Dynamo.get_tile dynamo (1,2))
+  let dynamo = run_with_ops Game_op.([
+      create (Add_resource Resources.Rock) (1,2)
+    ; create (Add_resource Resources.Wood) (1,2)]) in
+  ae_tile (make_tile [Resources.Rock,1; Resources.Wood,1])
+    (Dynamo.get_tile dynamo (1,2))
 
 let add_rock_and_tree_different_tiles _ =
-  let ops = Game_op.([create Add_rock (2,3);
-                      create Add_tree (1,2)]) in
-  let game = Game.create ops (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
-  let () = Dynamo.step dynamo in
+  let dynamo = run_with_ops Game_op.([
+      create (Add_resource Resources.Rock) (2,3)
+    ; create (Add_resource Resources.Wood) (1,2)]) in
   ae_tile (make_tile [Resources.Rock,1]) (Dynamo.get_tile dynamo (2,3));
   ae_tile (make_tile [Resources.Wood,1]) (Dynamo.get_tile dynamo (1,2))
 
 let multiple_adds _ =
-  let ops = Game_op.([create Add_rock (2,3);
-                      create Add_rock (2,3);
-                      create Add_tree (2,3);
-                      create Add_tree (1,2);
-                      create Add_rock (5,5);
-                      create Add_rock (5,5);
-                      create Add_rock (5,5);
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_resource Resources.Wood) (1,2)
+                     ; create (Add_resource Resources.Rock) (5,5)
+                     ; create (Add_resource Resources.Rock) (5,5)
+                     ; create (Add_resource Resources.Rock) (5,5)
                      ]) in
-  let game = Game.create ops (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.run dynamo in
-  ae_tile (make_tile Resources.([Wood, 1; Rock, 2])) (Dynamo.get_tile dynamo (2,3));
+  let dynamo = run_with_ops ops in
+  ae_tile (make_tile Resources.([Wood, 1; Rock, 2]))
+    (Dynamo.get_tile dynamo (2,3));
   ae_tile (make_tile [Resources.Wood, 1]) (Dynamo.get_tile dynamo (1,2));
   ae_tile (make_tile [Resources.Rock, 3]) (Dynamo.get_tile dynamo (5,5))
 
 let remove_tree _ =
-  let ops = Game_op.([create Add_rock (1,2);
-                      create Add_tree (1,2);
-                      create Remove_tree (1,2);]) in
-  let game = Game.create ops (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.run dynamo in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (1,2)
+                     ; create (Add_resource Resources.Wood) (1,2)
+                     ; create (Remove_resource Resources.Wood) (1,2)
+                     ]) in
+  let dynamo = run_with_ops ops in
   ae_tile (make_tile [Resources.Rock, 1]) (Dynamo.get_tile dynamo (1,2))
 
 let remove_rock _ =
-  let ops = Game_op.([create Add_rock (1,2);
-                      create Add_tree (1,2);
-                      create Remove_rock (1,2);]) in
-  let game = Game.create ops (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.run dynamo in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (1,2)
+                     ; create (Add_resource Resources.Wood) (1,2)
+                     ; create (Remove_resource Resources.Rock) (1,2)
+                     ]) in
+  let dynamo = run_with_ops ops in
   ae_tile (make_tile [Resources.Wood, 1]) (Dynamo.get_tile dynamo (1,2))
 
 let illegal_remove_tree _ =
-  let game = Game.create [Game_op.(create Remove_tree (1,2))] (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
+  let ops = Game_op.([ create (Remove_resource Resources.Wood) (1,2) ]) in
+  let dynamo = run_with_ops ops in
   ae_tile (make_tile [Resources.Wood, -1]) (Dynamo.get_tile dynamo (1,2))
-
-let illegal_remove_rock _ =
-  let game = Game.create [Game_op.(create Remove_rock (1,2))] (10,10) in
-  let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
-  ae_tile (make_tile [Resources.Rock, -1]) (Dynamo.get_tile dynamo (1,2))
 
 let suite =
   "dynamo suite">:::
@@ -289,5 +272,4 @@ let suite =
     "remove tree">::remove_tree;
     "remove rock">::remove_rock;
     "illegal remove tree">::illegal_remove_tree;
-    "illegal remove rock">::illegal_remove_rock;
   ]

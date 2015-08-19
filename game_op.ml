@@ -10,10 +10,8 @@ type code =
   (* Player id, time message occurred in utc, message *)
   | Player_harvest of Uuid.t * Resources.kind
   (* Player id, kind of resource to harvest *)
-  | Add_tree
-  | Remove_tree
-  | Add_rock
-  | Remove_rock with sexp
+  | Add_resource of Resources.kind
+  | Remove_resource of Resources.kind with sexp
 
 type t =
   { posn : Posn.t
