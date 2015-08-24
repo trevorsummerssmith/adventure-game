@@ -249,16 +249,17 @@ var PlayerPage = React.createClass ({
 		return (
 			<div>
 				<PlayerMenu onHarvest={this.handleHarvestSubmit} />
-				<TileDescription desc={this.state.data.tile.desc} />
 				<PlayerStatus wood={this.state.data.player.wood}
 					rock={this.state.data.player.rock} />
-				<form className="talkForm" onSubmit={this.handleMessageSubmit}>
-					<input type="text" ref="text" />
-					<input type="Submit" />
-				</form>
-				<a href="#" onClick={this.handleSubmit}>Send Location</a>
-				<h2>Messages</h2>
+				<TileDescription desc={this.state.data.tile.desc} />
+				<div className="menu">messages
+					<form className="talkForm" onSubmit={this.handleMessageSubmit}>
+						<input type="text" ref="text" />
+						<input type="Submit" value="Talk" />
+					</form>
+				</div>
 				<TileMessages messages={this.state.data.tile.messages} />
+				<a href="#" onClick={this.handleSubmit}>Send Location</a>
 			</div>
 		);
 	}
