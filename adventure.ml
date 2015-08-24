@@ -147,12 +147,12 @@ let handler dynamo body sock req =
   match path, C.Request.meth req with
   (* Static routes *)
   | "/", `GET
-  | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
-  | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
+  | "/index.html", `GET -> serve_file "./web" (Uri.of_string "/index.html")
+  | "/game", `GET -> serve_file "./web" (Uri.of_string "/game.html")
   | "/game.jsx", `GET
   | "/jquery.min.js", `GET
   | "/JSXTransformer.js", `GET
-  | "/react.js", `GET -> serve_file "." (Uri.of_string path)
+  | "/react.js", `GET -> serve_file "./web" (Uri.of_string path)
   (* Dynamic *)
   | "/harvest", `GET -> handle_player_harvest dynamo req body
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK

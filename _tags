@@ -7,3 +7,4 @@ true: package(async), package(core), \
 <tests/*>: package(oUnit)
 
 ".git": -traverse
+"web": -traverse

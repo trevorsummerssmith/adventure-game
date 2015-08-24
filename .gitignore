@@ -2,3 +2,7 @@
 _build
 *.native
 *.byte
+# external js files
+web/react.js
+web/jquery.min.js
+web/JSXTransformer.js
