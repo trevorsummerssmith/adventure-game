@@ -14,47 +14,28 @@
       }
 
       a { color: white; }
-      #menu a { color: #333; }
-      #menu a:hover { background-color: #fff; color: #DDFBFF; }
-      #messages { padding-left: 0px; }
-      #messages li {list-style: none;}
+    .menu {
+	    background-color: #DDFBFF;
+	    color: #333;
+    }
+    .menu a { color: #333; }
+    .menu a:hover { background-color: #fff; color: #DDFBFF; }
+
+    .messages { padding-left: 0px; }
+    .messages li {list-style: none;}
+
+    .playerStatus {
+	    background-color: #DDFBFF;
+	    color: #333;
+	    margin-bottom: 10px;
+    }
     </style>
   </head>
   <body>
-    <div id="menu" class="container-fluid" style="background-color: #DDFBFF;">
-      <span style="color: #333;"><a href="#" onclick="doHarvest(RESOURCE_KIND_WOOD);">harvest</a></span>
-      <span style="color: #333;"> . <a href="#" onclick="doHarvest(RESOURCE_KIND_ROCK);">mine</a></span>
-      <span style="color: #333;"> . build</span>
-      <span style="color: #333;"> . attack</span>
-      <span style="color: #333;"> . talk</span>
-      <span style="color: #333;"> . enter</span>
-    </div>
-    <div class="container-fluid" style="background-color: #DDFBFF; margin-bottom: 10px;">
-      <span style="color: #333;">&gt;&gt;&gt; wood: <span id="wood">-</span></span>
-      <span style="color: #333;">rock: <span id="rock">-</span></span>
-    </div>
-    <div id="game-text" class="container-fluid">
-      A grove of sycamore trees stands a few feet away.
-      Near to your feet are deep black rocks. A matte grey fortress
-      sits a bit behind the trees.
-    </div>
-    <h2>messages</h2>
-    <ul id="messages" style="height: 300px; overflow-y: auto;"></ul>
-    <form>
-      <input type="text" name="x" id="x" value="-73.9652639"></input>
-      <input type="text" name="y" id="y" value="40.632408"></input>
-      <a href="#" onclick="getLocation();">Get location</a>
-      <a href="#" onclick="sendLocation();">Send location</a>
-    </form>
-    <form>
-      <label for="message">Message</label>
-      <input type="text" name="message" id="message"></input>
-      <a href="#" onclick="sendMessage();">Chat</a>
-    </form>
+    <div class="container-fluid" id="container"></div>
+    <script src="react.js"></script>
+    <script src="JSXTransformer.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-    <script src="game.js"></script>
-    <script>
-      $(document).ready(function() { startGame(); });
-    </script>
+    <script src="game.jsx" type="text/jsx"></script>
   </body>
 </html>

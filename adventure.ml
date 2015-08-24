@@ -145,10 +145,15 @@ let handle_player_harvest dynamo req body =
 let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
   match path, C.Request.meth req with
+  (* Static routes *)
   | "/", `GET
   | "/index.html", `GET -> serve_file "." (Uri.of_string "/index.html")
   | "/game", `GET -> serve_file "." (Uri.of_string "/game.html")
-  | "/game.js", `GET -> serve_file "." (Uri.of_string "/game.js")
+  | "/game.jsx", `GET
+  | "/jquery.min.js", `GET
+  | "/JSXTransformer.js", `GET
+  | "/react.js", `GET -> serve_file "." (Uri.of_string path)
+  (* Dynamic *)
   | "/harvest", `GET -> handle_player_harvest dynamo req body
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
   | "/message", `GET -> handle_message dynamo req body

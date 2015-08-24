@@ -26,9 +26,27 @@
       </div>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-    <script src="game.js"></script>
     <script>
-      $(document).ready(function() { loginPage(); });
+    function selectCharacter(id) {
+	    var path = "/game?playerId=" + id;
+	    window.location.assign(path);
+    }
+
+    function loginPage() {
+	    $.ajax({url: "/players",
+		    success:function(msg){
+			    var obj = jQuery.parseJSON(msg);
+			    var s = "";
+			    $.each(obj.players, function(key, value) {
+				    s += "<li><a href=\"#\" onclick=\"selectCharacter('" + key + "')\">" + value + "</a></li>";
+			    });
+			    $("#players").empty();
+			    $("#players").append($(s));
+		    }
+	    });
+    }
+
+    $(document).ready(function() { loginPage(); });
     </script>
   </body>
 </html>
