@@ -157,3 +157,6 @@ let dimensions dynamo =
 
 let game dynamo =
   dynamo.game
+
+let board dynamo =
+  dynamo.board

@@ -1,9 +1,9 @@
 function displayErrorMessage(str) {
-	alert("Error: " + str);
+  alert("Error: " + str);
 }
 
 function displayErrorOnAjaxCallback(xhr, status, err) {
-	displayErrorMessage(status + " " + err.toString() + ": " + xhr.responseText);
+  displayErrorMessage(status + " " + err.toString() + ": " + xhr.responseText);
 }
 
 function ajax(dict) {
@@ -19,23 +19,23 @@ function ajax(dict) {
 }
 
 function getParam(key) {
-    // Janky get param. Returns the first match.
-    // Seems there isn't an easier to to get this in jquery...?
-    if (window.location.search == "") { return null; }
-    var uriParts = window.location.search.split("?");
-    // Remove the '?'
-    var splits = uriParts[1].split("&");
-    if (splits == null) { return null; }
-    for (var i=0; i < splits.length; i++) {
-	var str = splits[i];
-	var keyVal = str.split("=");
-	console.log(keyVal[0] + keyVal[1]);
-	console.log(key);
-	if (keyVal[0] == key) {
+  // Janky get param. Returns the first match.
+  // Seems there isn't an easier to to get this in jquery...?
+  if (window.location.search == "") { return null; }
+  var uriParts = window.location.search.split("?");
+  // Remove the '?'
+  var splits = uriParts[1].split("&");
+  if (splits == null) { return null; }
+  for (var i=0; i < splits.length; i++) {
+	  var str = splits[i];
+	  var keyVal = str.split("=");
+	  console.log(keyVal[0] + keyVal[1]);
+	  console.log(key);
+	  if (keyVal[0] == key) {
 	    return keyVal[1];
-	}
-    }
-    return null;
+	  }
+  }
+  return null;
 }
 
 function getPlayerId() {
@@ -86,8 +86,8 @@ var TileMessages = React.createClass ({
 		var messageNodes = this.props.messages.map(function (message) {
 			return (
 				<TileMessage date={message.time}
-					authorName={message.playerName}
-					text={message.text} />
+					           authorName={message.playerName}
+					           text={message.text} />
 			);
 		});
 		return (
@@ -134,6 +134,21 @@ var PlayerMenu = React.createClass ({
 	}
 });
 
+var Map = React.createClass ({
+  componentDidUpdate: function() {
+    var canvas = React.findDOMNode(this);
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle="rgb(255,0,0)";
+    ctx.fillRect(1, 1, 200, 200);
+    drawMap(canvas, this.props.mapData, this.props.playerPosn); // XXX
+  },
+	render: function () {
+		return(<canvas width={500} height={500}></canvas>);
+	}
+});
+
+var UNKNOWN_PLAYER_POSITION = -1;
+
 var PlayerPage = React.createClass ({
 	handleHarvestSubmit: function(e, resourceKind) {
 		e.preventDefault();
@@ -141,39 +156,56 @@ var PlayerPage = React.createClass ({
 			method: "GET",
 			url: "/harvest",
 			data: { lat: this.state.lat,
-				long: this.state.long,
-				playerId: this.props.playerId,
-				kind: resourceKind
+				      long: this.state.long,
+				      playerId: this.props.playerId,
+				      kind: resourceKind
 			},
 			success: function(data) {
-				this.setState({data: data});
+				this.setState({mapData: data.tiles});
 			}.bind(this)
 		});
 	},
+  getMap: function() {
+    ajax({
+      method: "GET",
+      url: "/board",
+      data: {playerId: this.props.playerId},
+      success: function(data) {
+        this.setState({mapData:data.tiles,
+                       playerPosn:{x:data.player[0],
+                                   y:data.player[1]}
+        });
+      }.bind(this)
+    });
+  },
 	getInitialState: function() {
 		// Random coords for default location for now.
-		// Makes debugging a lot easier
-		return {lat: 40.632408,
-			long: -73.9652639,
-			data:{player:{wood:"-",rock:"-"},
-				tile: {messages: [],
-					desc:"A grove of sycamore trees stands a few feet away. Near to your feet are deep black rocks. A matte grey fortress sits a bit behind the trees."}
-			}
+    // Makes debugging a lot easier
+    return {lat: 40.632408,
+			      long: -73.9652639,
+            mapData: [],
+            playerPosn:{x:UNKNOWN_PLAYER_POSITION,
+                        y:UNKNOWN_PLAYER_POSITION},
+			      data:{
+              player:{wood:"-",rock:"-"},
+				          tile: {messages: [],
+					               desc:"A grove of sycamore trees stands a few feet away. Near to your feet are deep black rocks. A matte grey fortress sits a bit behind the trees."}
+			      }
 		};
 	},
 	updateLocation: function(lat, long) {
 		// Update the location if it has changed
 		// Update the server and wait for that to flow back
 		// to update the ui.
-		console.log("updateLocation: " + lat + " " + long);
+    console.log("updateLocation: " + lat + " " + long);
 		console.log("updateLocation: " + this.state.lat + " " + this.state.long);
 		if ((lat != this.state.lat) || (long != this.state.long)) {
 			ajax({
 				method: "GET",
 				url: "/player",
 				data: { lat: lat,
-					long: long,
-					playerId: this.props.playerId
+					      long: long,
+					      playerId: this.props.playerId
 				},
 				success: function(data) {
 					this.setState({data: data});
@@ -184,36 +216,40 @@ var PlayerPage = React.createClass ({
 	getLocation: function() {
 		// Use the location api to get the user's current location
 		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(function (position) {
-				// We got the location... update state but
-				// only if we have moved.
-				var lat = position.coords.latitude;
-				var long = position.coords.longitude;
-				this.updateLocation(lat, long);
-			}.bind(this),
-				function (error) {
-				switch(error.code) {
-					case error.PERMISSION_DENIED:
-						alert("User denied the request for Geolocation.")
-							break;
-					case error.POSITION_UNAVAILABLE:
-						alert("Location information is unavailable.")
-							break;
-					case error.TIMEOUT:
-						alert("The request to get user location timed out.")
-							break;
-					case error.UNKNOWN_ERROR:
-						alert("GeoLocation: An unknown error occurred.")
-							break;
-				}
-			});
+			navigator.geolocation.getCurrentPosition(
+        function (position) {
+				  // We got the location... update state but
+				  // only if we have moved.
+          var lat = position.coords.latitude;
+				  var long = position.coords.longitude;
+				  this.updateLocation(lat, long);
+			  }.bind(this),
+        function (error) {
+				  switch(error.code) {
+					  case error.PERMISSION_DENIED:
+						  alert("User denied the request for Geolocation.")
+							  break;
+					  case error.POSITION_UNAVAILABLE:
+						  alert("Location information is unavailable.")
+							  break;
+					  case error.TIMEOUT:
+						  alert("The request to get user location timed out.")
+							  break;
+					  case error.UNKNOWN_ERROR:
+						  alert("GeoLocation: An unknown error occurred.")
+							  break;
+				  }
+			  });
 		} else {
 			alert("Cannot do geolocation in your browser");
-		}		
+		}
 	},
 	componentDidMount: function() {
 		// Update every 10 s
 		this.getLocation();
+    // Get initial player map (note that we currently don't update it again
+    // as a whole map)
+    this.getMap();
 		setInterval(this.getLocation, this.props.locationPollInterval);
 	},
 	handleMessageSubmit: function (e) {
@@ -223,9 +259,9 @@ var PlayerPage = React.createClass ({
 			method: "GET",
 			url: "/message",
 			data: { lat: this.state.lat,
-				long: this.state.long,
-				playerId: this.props.playerId,
-				message: text
+				      long: this.state.long,
+				      playerId: this.props.playerId,
+				      message: text
 			},
 			success: function(data) {
 				this.setState({data: data});
@@ -237,8 +273,8 @@ var PlayerPage = React.createClass ({
 			method: "GET",
 			url: "/player",
 			data: { lat: this.state.lat,
-				long: this.state.long,
-				playerId: this.props.playerId
+				      long: this.state.long,
+				      playerId: this.props.playerId
 			},
 			success: function(data) {
 				this.setState({data: data});
@@ -250,7 +286,7 @@ var PlayerPage = React.createClass ({
 			<div>
 				<PlayerMenu onHarvest={this.handleHarvestSubmit} />
 				<PlayerStatus wood={this.state.data.player.wood}
-					rock={this.state.data.player.rock} />
+					            rock={this.state.data.player.rock} />
 				<TileDescription desc={this.state.data.tile.desc} />
 				<div className="menu">messages
 					<form className="talkForm" onSubmit={this.handleMessageSubmit}>
@@ -259,7 +295,8 @@ var PlayerPage = React.createClass ({
 					</form>
 				</div>
 				<TileMessages messages={this.state.data.tile.messages} />
-				<a href="#" onClick={this.handleSubmit}>Send Location</a>
+        <Map playerPosn={this.state.playerPosn} mapData={this.state.mapData} />
+        <a href="#" onClick={this.handleSubmit}>Send Location</a>
 			</div>
 		);
 	}

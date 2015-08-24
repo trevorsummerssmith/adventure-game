@@ -23,3 +23,5 @@ val players : t -> (Uuid.t, Player.t) Hashtbl.t
 val dimensions : t -> Posn.t
 
 val game : t -> Game.t
+
+val board : t -> Board.t

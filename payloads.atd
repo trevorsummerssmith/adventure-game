@@ -18,3 +18,16 @@ type response =
   { tile : tile
   ; player_status <json name="player"> : player_status
   }
+
+(* This playload is a repeated many times, so we keep it concise *)
+type map_tile =
+  { p : bool (* players *)
+  ; w : bool (* wood *)
+  ; r : bool (* rock *)
+  ; m : bool (* messages *)
+  }
+
+type map_payload =
+  { tiles : map_tile list list
+  ; ?player : (int * int) option
+  }

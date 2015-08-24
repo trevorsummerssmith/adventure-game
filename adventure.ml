@@ -149,6 +149,7 @@ let handler dynamo body sock req =
   | "/", `GET
   | "/index.html", `GET -> serve_file "./web" (Uri.of_string "/index.html")
   | "/game", `GET -> serve_file "./web" (Uri.of_string "/game.html")
+  | "/map.js", `GET
   | "/game.jsx", `GET
   | "/jquery.min.js", `GET
   | "/JSXTransformer.js", `GET
@@ -170,18 +171,25 @@ let handler dynamo body sock req =
     let s = Printf.sprintf "{\"players\":{%s}}" player_str in
     respond ~body:(CA.Body.of_string s) `OK
   | "/board", `GET -> (
-      (* Should have x and y *)
+      (* Optionally a player *)
       let uri = C.Request.uri req in
-      match Uri.get_query_param uri "x", Uri.get_query_param uri "y" with
-      | Some x, Some y ->
-        (try
-           let posn = Int.of_string x, Int.of_string y in
-           let body = make_tile_payload dynamo posn
-                      |> Payloads_j.string_of_tile
-                      |> CA.Body.of_string in
-           respond ~body `OK
-         with exn -> bad_request (Exn.to_string exn))
-      | _, _ -> bad_request "x and y params required"
+      let param = Uri.get_query_param uri "playerId" in
+      let player = Option.map ~f:(fun id ->
+                            let tbl = Dynamo.players dynamo in
+                            Hashtbl.find_exn tbl (Uuid.of_string id) |>
+                            Player.posn) param in
+      let to_map_tile tile : Payloads_t.map_tile =
+        let players = Tile.players tile |> List.is_empty |> not in
+        let resources = Tile.resources tile |> Resources.get in
+        let wood = resources ~kind:Resources.Wood |> (<) 0 in
+        let rock = resources ~kind:Resources.Rock |> (<) 0 in
+        let messages = Tile.messages tile |> List.is_empty |> not in
+        Payloads_t.({p=players;w=wood;r=rock;m=messages})
+      in
+      let tiles = Board.mapi ~f:(fun _x _y t -> to_map_tile t) (Dynamo.board dynamo) in
+      let tiles = Array.to_list tiles |> List.map ~f:Array.to_list in
+      let body = Payloads_t.({tiles;player}) |> Payloads_j.string_of_map_payload |> CA.Body.of_string in
+      respond ~body `OK
     )
   | _ -> respond `Bad_request
 

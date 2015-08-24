@@ -26,3 +26,9 @@ let set board tile (x, y) =
 
 let dimensions board =
   board.dimensions
+
+let mapi board ~(f : int -> int -> Tile.t -> 'a) : 'a array array =
+  Array.mapi ~f:(fun (x:int) arr ->
+      Array.mapi ~f:(fun (y:int) (tile:Tile.t) -> f x y tile) arr
+    )
+    board.board
