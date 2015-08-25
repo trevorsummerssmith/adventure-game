@@ -9,9 +9,15 @@ type tile =
   ; messages : message list
   }
 
+type posn =
+  { x : int
+  ; y : int
+  }
+
 type player_status =
   { wood : int
   ; rock : int
+  ; posn : posn
   }
 
 type response =

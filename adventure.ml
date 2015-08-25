@@ -59,10 +59,11 @@ let make_tile_payload dynamo posn =
 
 let respond_with_tile_description_and_player dynamo id posn =
   let player = Hashtbl.find_exn (Dynamo.players dynamo) id in
+  let x,y = Player.posn player in
   let resources = Player.resources player in
   let wood = Resources.get resources ~kind:Resources.Wood in
   let rock = Resources.get resources ~kind:Resources.Rock in
-  let player_status = Payloads_t.({wood; rock}) in
+  let player_status = Payloads_t.({wood; rock; posn={x;y}}) in
 
   (* Make the tile *)
   let tile = make_tile_payload dynamo posn in
