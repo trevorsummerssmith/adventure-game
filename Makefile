@@ -16,3 +16,18 @@ clean:
 .PHONY: tests
 tests:
 	$(OCAMLBUILD) -Is tests tests/test_runner.native && ./test_runner.native
+
+#
+# Hacky download our dependent js files
+#
+JS_DEPS=web/react.js web/JSXTransformer.js web/jquery.min.js
+web/react.js:
+	wget -Oweb/react.js https://fb.me/react-0.13.3.js
+
+web/JSXTransformer.js:
+	wget -Oweb/JSXTransformer.js https://fb.me/JSXTransformer-0.13.3.js
+
+web/jquery.min.js:
+	wget -Oweb/jquery.min.js http://code.jquery.com/jquery-1.11.3.min.js
+
+install-js: $(JS_DEPS)
