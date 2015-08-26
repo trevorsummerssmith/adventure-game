@@ -152,6 +152,7 @@ let handler dynamo body sock req =
   | "/game", `GET -> serve_file "./web" (Uri.of_string "/game.html")
   | "/map.js", `GET
   | "/game.jsx", `GET
+  | "/compass.js", `GET
   | "/jquery.min.js", `GET
   | "/JSXTransformer.js", `GET
   | "/react.js", `GET -> serve_file "./web" (Uri.of_string path)

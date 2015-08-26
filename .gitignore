@@ -6,3 +6,4 @@ _build
 web/react.js
 web/jquery.min.js
 web/JSXTransformer.js
+web/compass.js

@@ -135,6 +135,9 @@ var PlayerMenu = React.createClass ({
 });
 
 var Map = React.createClass ({
+  componentDidMount: function() {
+    //setupCompass(); // Just once!
+  },
   componentDidUpdate: function() {
     var canvas = React.findDOMNode(this);
     var ctx = canvas.getContext("2d");
