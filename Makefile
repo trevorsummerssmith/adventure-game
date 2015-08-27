@@ -17,6 +17,12 @@ clean:
 tests:
 	$(OCAMLBUILD) -Is tests tests/test_runner.native && ./test_runner.native
 
+# Install ocaml deps
+.PHONY: install-ocaml-deps
+install-ocaml-deps:
+	opam pin add --yes --no-action adventure-game .
+	opam install --yes --deps-only adventure-game
+
 #
 # Hacky download our dependent js files
 #
@@ -30,4 +36,7 @@ web/JSXTransformer.js:
 web/jquery.min.js:
 	wget -Oweb/jquery.min.js http://code.jquery.com/jquery-1.11.3.min.js
 
-install-js: $(JS_DEPS)
+install-js-deps: $(JS_DEPS)
+
+# Install deps
+install-deps: install-js-deps install-ocaml-deps

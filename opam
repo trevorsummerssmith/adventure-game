@@ -1,0 +1,33 @@
+#
+# This file is currently here only to install the ocaml dependencies
+# There isn't an actual package
+#
+opam-version: "1.2"
+version: "dev"
+maintainer: "trevorsummerssmith@gmail.com"
+authors: ["Trevor"]
+
+homepage: "https://github.com/trevorsummerssmith/adventure-game"
+bug-reports: "https://github.com/trevorsummerssmith/adventure-game/issues"
+dev-repo: "https://github.com/trevorsummerssmith/adventure-game.git"
+
+build: [make "PREFIX=%{prefix}%"]
+build-test: [make "tests"]
+install: ["echo" "Nothing to install"]
+remove: ["echo" "Nothing to remove"]
+
+depends: [
+  "camlp4" {build}
+  "ocamlfind" {build}
+  "ocamlbuild-atdgen" {build}
+  "ounit" {test}
+  "sexplib"
+  "core"
+  "async"
+  "conduit"
+  "cohttp"
+  "atdgen"
+  "yojson"
+]
+
+available: [ocaml-version >= "4.01.0"]
