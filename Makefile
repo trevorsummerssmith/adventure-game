@@ -26,7 +26,7 @@ install-ocaml-deps:
 #
 # Hacky download our dependent js files
 #
-JS_DEPS=web/react.js web/JSXTransformer.js web/jquery.min.js
+JS_DEPS=web/react.js web/JSXTransformer.js web/jquery.min.js web/compass.js
 web/react.js:
 	wget -Oweb/react.js https://fb.me/react-0.13.3.js
 
@@ -35,6 +35,9 @@ web/JSXTransformer.js:
 
 web/jquery.min.js:
 	wget -Oweb/jquery.min.js http://code.jquery.com/jquery-1.11.3.min.js
+
+web/compass.js:
+	wget -Oweb/compass.js http://ai.github.com/compass.js/compass.js
 
 install-js-deps: $(JS_DEPS)
 
