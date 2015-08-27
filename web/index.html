@@ -37,6 +37,10 @@
 	    $.ajax({url: "/players",
 		    success:function(msg){
 			    var obj = jQuery.parseJSON(msg);
+          // We need players to play the game!
+          if (Object.keys(obj.players).length == 0) {
+            alert("The game you loaded has no players!");
+          }
 			    var s = "";
 			    $.each(obj.players, function(key, value) {
 				    s += "<li><a href=\"#\" onclick=\"selectCharacter('" + key + "')\">" + value + "</a></li>";
