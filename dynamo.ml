@@ -107,10 +107,15 @@ let validate_player_and_posn dynamo id posn =
   match Hashtbl.find dynamo.players id with
   | None -> Or_error.error_string "Player not found"
   | Some p ->
-    if (Player.posn p) = posn then
+    let player_posn = Player.posn p in
+    if player_posn = posn then
       Result.ok_unit
     else
-      Or_error.error_string "Player not on right position."
+      let x,y = posn in
+      let p_x,p_y = player_posn in
+      sprintf "Player not on right position. Board player is at: (%d,%d) Action at: (%d,%d)"
+        p_x p_y x y
+      |> Or_error.error_string
 
 let validate_player_message dynamo (id, _time, _text) posn : unit Or_error.t =
   (* 1 Player must exist
