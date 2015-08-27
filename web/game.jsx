@@ -211,7 +211,9 @@ var PlayerPage = React.createClass ({
 					      playerId: this.props.playerId
 				},
 				success: function(data) {
-					this.setState({playerPosn: data.player.posn,
+					this.setState({lat: lat,
+                         long: long,
+                         playerPosn: data.player.posn,
                          data: data}); // TODO clean this payload up
 				}.bind(this)		
 			});
