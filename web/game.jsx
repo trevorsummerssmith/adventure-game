@@ -136,14 +136,15 @@ var PlayerMenu = React.createClass ({
 
 var Map = React.createClass ({
     componentDidMount: function() {
-        //setupCompass(); // Just once!
+        var canvas = React.findDOMNode(this);
+        updateCompassData(this.props.mapData, this.props.playerPosn);
+        setupCompass(canvas); // Just once!
     },
     componentDidUpdate: function() {
         var canvas = React.findDOMNode(this);
         var ctx = canvas.getContext("2d");
-        ctx.fillStyle="rgb(255,0,0)";
-        ctx.fillRect(1, 1, 200, 200);
-        drawMap(canvas, this.props.mapData, this.props.playerPosn); // XXX
+        drawMap(canvas, this.props.mapData, this.props.playerPosn);
+        updateCompassData(this.props.mapData, this.props.playerPosn);
     },
     render: function () {
         return(<canvas width={500} height={500}></canvas>);
