@@ -165,7 +165,7 @@ var PlayerPage = React.createClass ({
                     kind: resourceKind
             },
             success: function(data) {
-                this.setState({mapData: data.tiles});
+                this.setState({data: data});
             }.bind(this)
         });
     },
