@@ -7,6 +7,7 @@ function displayErrorOnAjaxCallback(xhr, status, err) {
 }
 
 function ajax(dict) {
+    // Wrapper around $.ajax to set defaults
     // dict is the ajax dict
     // provide default args but override what was passed
     var args = {
@@ -39,6 +40,7 @@ function getParam(key) {
 }
 
 function getPlayerId() {
+    // Returns: string uuid
     // Return the player id of the player who is playing the game.
     // This is super jank for now.
     var id = getParam("playerId");
@@ -53,8 +55,12 @@ var RESOURCE_KIND_WOOD = "wood";
 var RESOURCE_KIND_ROCK = "rock";
 
 var TileMessage = React.createClass ({
-
-
+    // Displays a single player text message
+    //
+    // @param this.props.date - date string RFC2822 or ISO 8601
+    // @param this.props.authorName - string
+    // @param this.props.text - string
+    //
     formatDate: function(timeStr) {
         // Format date as: 13:23:44 09/08/15
         function padInt(n) {
@@ -82,6 +88,10 @@ var TileMessage = React.createClass ({
 });
 
 var TileMessages = React.createClass ({
+    // Displays all of the player text messages on a tile
+    //
+    // @param this.props.messages - payloads.atd message
+    //
     render: function() {
         var messageNodes = this.props.messages.map(function (message) {
             return (
@@ -99,6 +109,10 @@ var TileMessages = React.createClass ({
 });
 
 var TileDescription = React.createClass ({
+    // Displays the text description of the tile
+    //
+    // @param this.props.desc - string
+    //
     render: function() {
         return (
             <div className="tileDescription">
@@ -109,6 +123,11 @@ var TileDescription = React.createClass ({
 });
 
 var PlayerStatus = React.createClass ({
+    // Displays the player's status in the game
+    //
+    // @param this.props.wood - string: this is a number or '-' on startup
+    // @param this.props.rock - string: this is a number or '-' on startup
+    //
     render: function() {
         return (
             <div className="playerStatus">
@@ -120,6 +139,10 @@ var PlayerStatus = React.createClass ({
 });
 
 var PlayerMenu = React.createClass ({
+    // Top level menu in the game
+    //
+    // @params this.props.onHarvest callback to harvest resources
+    //
     render: function() {
         return (
             <div className="menu">
@@ -135,6 +158,11 @@ var PlayerMenu = React.createClass ({
 });
 
 var Map = React.createClass ({
+    // Map element on the board
+    // Responsible for setting up the map and its compass
+    //
+    // @params this.props.mapData - payloads.atd map_payload.tiles
+    // @params this.props.playerPosn - {x: int, y: int}
     componentDidMount: function() {
         var canvas = React.findDOMNode(this);
         updateCompassData(this.props.mapData, this.props.playerPosn);
@@ -154,7 +182,17 @@ var Map = React.createClass ({
 var UNKNOWN_PLAYER_POSITION = -1;
 
 var PlayerPage = React.createClass ({
+    // The main app. This contains the only state.
+    // All callbacks are defined here and passed down to children
+
+    //
+    // Event Handlers
+    //
+
     handleHarvestSubmit: function(e, resourceKind) {
+        // Handles the user clicking the harvest button
+        // Makes request to the server to harvest a resource of the given type
+        // @update this.state.data
         e.preventDefault();
         ajax({
             method: "GET",
@@ -169,7 +207,45 @@ var PlayerPage = React.createClass ({
             }.bind(this)
         });
     },
+    handleMessageSubmit: function (e) {
+        // Handles the user clicking the message button
+        // Makes a reuest to the server to make a message
+        // @update this.state.data
+        e.preventDefault();
+        var text = React.findDOMNode(this.refs.text).value.trim();
+        ajax({
+            method: "GET",
+            url: "/message",
+            data: { lat: this.state.lat,
+                    long: this.state.long,
+                    playerId: this.props.playerId,
+                    message: text
+            },
+            success: function(data) {
+                this.setState({data: data});
+            }.bind(this)
+        });
+    },
+    handleSendLocation: function(e) {
+        // This is a debugging function
+        // Handles the user explicitly submitting their location
+        // @update this.state.data
+        ajax({
+            method: "GET",
+            url: "/player",
+            data: { lat: this.state.lat,
+                    long: this.state.long,
+                    playerId: this.props.playerId
+            },
+            success: function(data) {
+                this.setState({data: data});
+            }.bind(this)
+        });
+    },
     getMap: function() {
+        // Gets the map from the server
+        // @update this.state.mapData
+        //         this.state.playerPosn
         ajax({
             method: "GET",
             url: "/board",
@@ -201,6 +277,10 @@ var PlayerPage = React.createClass ({
         // Update the location if it has changed
         // Update the server and wait for that to flow back
         // to update the ui.
+        // @update this.state.lat
+        //         this.state.long
+        //         this.state.playerPosn
+        //         this.state.data
         console.log("updateLocation: " + lat + " " + long);
         console.log("updateLocation: " + this.state.lat + " " + this.state.long);
         if ((lat != this.state.lat) || (long != this.state.long)) {
@@ -259,35 +339,6 @@ var PlayerPage = React.createClass ({
         this.getMap();
         setInterval(this.getLocation, this.props.locationPollInterval);
     },
-    handleMessageSubmit: function (e) {
-        e.preventDefault();
-        var text = React.findDOMNode(this.refs.text).value.trim();
-        ajax({
-            method: "GET",
-            url: "/message",
-            data: { lat: this.state.lat,
-                    long: this.state.long,
-                    playerId: this.props.playerId,
-                    message: text
-            },
-            success: function(data) {
-                this.setState({data: data});
-            }.bind(this)
-        });
-    },
-    handleSubmit: function(e) {
-        ajax({
-            method: "GET",
-            url: "/player",
-            data: { lat: this.state.lat,
-                    long: this.state.long,
-                    playerId: this.props.playerId
-            },
-            success: function(data) {
-                this.setState({data: data});
-            }.bind(this)
-        });
-    },
     render: function() {
         return (
             <div>
@@ -303,7 +354,7 @@ var PlayerPage = React.createClass ({
                 </div>
                 <TileMessages messages={this.state.data.tile.messages} />
                 <Map playerPosn={this.state.playerPosn} mapData={this.state.mapData} />
-                <a href="#" onClick={this.handleSubmit}>Send Location</a>
+                <a href="#" onClick={this.handleSendLocation}>Send Location</a>
             </div>
         );
     }
