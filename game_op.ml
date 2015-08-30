@@ -16,7 +16,11 @@ type code =
 type t =
   { posn : Posn.t
   ; code : code
+  ; time : Time.t (* Server time this op was created *)
   } with sexp
 
-let create code posn =
-  {code; posn}
+let create ?time code posn =
+  { code
+  ; posn
+  ; time = Option.value ~default:(Time.now()) time
+  }

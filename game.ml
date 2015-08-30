@@ -18,6 +18,8 @@ let num_ops game =
 
 let add_op game op =
   (* We add to the tail so our indices don't change *)
+  assert (let last_op = List.nth_exn game.ops (List.length game.ops - 1) in
+          Time.compare op.Game_op.time last_op.Game_op.time >= 0);
   let ops = game.ops @ [op] in
   {game with ops}
 
