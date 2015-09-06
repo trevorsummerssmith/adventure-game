@@ -14,10 +14,21 @@ type posn =
   ; y : int
   }
 
+type buildable =
+  { percent : int
+  ; kind : string
+  }
+
+type artifact =
+  { text : string
+  }
+
 type player_status =
   { wood : int
   ; rock : int
   ; posn : posn
+  ; buildables : buildable list
+  ; artifacts : artifact list
   }
 
 type response =

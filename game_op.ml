@@ -1,5 +1,19 @@
 open Core.Std
 
+(**
+   We should be thoughtful about what goes into a code. We want to have
+   the minimal information necessary for the operation to occur.
+
+   Prefer using non-aggregate types that are the constituent parts
+   necessary. For example, for the player create message op, we use
+   the player's id (uuid), the time the message occurred and the message
+   text. We could have used the player type and a message type.
+
+   By keeping this separate we decouple the implementation of these types
+   (which we expect to change and get more complex with time), and the
+   ops that mutate this state itself.
+*)
+
 type code =
   | Add_player of string * Uuid.t option
   (* Player name
@@ -10,14 +24,18 @@ type code =
   (* Player id, time message occurred in utc, message *)
   | Player_harvest of Uuid.t * Resources.kind
   (* Player id, kind of resource to harvest *)
+  | Player_create_artifact of Uuid.t * string * Uuid.t option
+  (* Player id, artifact text, optional id of the artifact *)
+  | Buildable_update of Uuid.t * Entity.Buildable.status
+  (* Entity uuid, status of the entity update *)
   | Add_resource of Resources.kind
-  | Remove_resource of Resources.kind with sexp
+  | Remove_resource of Resources.kind with sexp, compare
 
 type t =
   { posn : Posn.t
   ; code : code
   ; time : Time.t (* Server time this op was created *)
-  } with sexp
+  } with sexp, compare
 
 let create ?time code posn =
   { code

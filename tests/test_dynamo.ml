@@ -1,9 +1,15 @@
 open Core.Std
+open Async.Std
 open OUnit2
 
-let run_with_ops ?(dimensions=(10,10)) ~ops =
+let after_trivial _span = Deferred.unit
+
+let run_with_ops ?(dimensions=(10,10)) ops =
+  (* Helper function to create a Dynamo with [ops] and run them.
+     Uses a trivial implementation of [after] for the Dynamo.
+  *)
   let dynamo = Game.create ops dimensions |> Dynamo.create in
-  let () = Dynamo.run dynamo in
+  Dynamo.run dynamo;
   dynamo
 
 let ae_sexp ?cmp ?pp_diff ?msg sexp a a' =
@@ -11,10 +17,24 @@ let ae_sexp ?cmp ?pp_diff ?msg sexp a a' =
     ~printer:(fun x -> x |> sexp |> Sexp.to_string_hum) a a'
 
 let ae_player p p' =
-ae_sexp ~cmp:(fun a b -> (Player.compare a b) = 0) Player.sexp_of_t p p'
+  ae_sexp ~cmp:(fun a b -> (Player.compare a b) = 0) Player.sexp_of_t p p'
 
 let ae_tile t t' =
   ae_sexp ~cmp:(fun a b -> (Tile.compare a b) = 0) Tile.sexp_of_t t t'
+
+let ae_game_op op op' =
+  (* Ignore Game_op's time (because it is computer assigned) *)
+  ae_sexp ~cmp:(fun a b ->
+      let open Game_op in
+      ((Poly.compare a.posn b.posn) = 0)
+      && ((compare_code a.code b.code) = 0))
+    Game_op.sexp_of_t op op'
+
+let assert_from_pipe pipe ae answer =
+  Pipe.read pipe >>| (function
+  | `Eof -> failwith "assert_from_pipe: expected `Ok got `Eof"
+  | `Ok a -> ae answer a)
+  >>> fun () -> ()
 
 let assert_players_on_board dynamo =
   (* Asserts that the list of players in the dynamo have the positions as the
@@ -251,6 +271,150 @@ let illegal_remove_tree _ =
   let dynamo = run_with_ops ops in
   ae_tile (make_tile [Resources.Wood, -1]) (Dynamo.get_tile dynamo (1,2))
 
+let create_artifact_success _ =
+  (* Tests that a resource was added to the buildable.
+     We're not going to test the async buildable updating that is also launched
+     Not sure how to dependency inject all of that without it being really a pain.
+     Instead, we test that functionality separately
+  *)
+  let artifact_id = Uuid.create () in
+  let player_id = Uuid.create () in
+  let text = "Awesome Artifact" in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_player ("Awesome Andy", Some player_id)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
+                     ]) in
+  let dynamo = run_with_ops ops in
+  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+                      (2,3)) in
+  match Dynamo.add_op dynamo op with
+  | Result.Error e -> failwith (Error.to_string_hum e)
+  | Result.Ok () ->
+    Dynamo.step dynamo;
+    let buildables = Dynamo.buildables dynamo
+                     |> Hashtbl.to_alist in
+    let entity = Entity.({id=artifact_id; player_id; text}) in
+    let answer = Entity.Buildable.({percent_complete=Building 0; entity}) in
+    assert_equal buildables [artifact_id, answer]
+
+let create_artifact_validation_failure_wood _ =
+  (* Player doesn't have enough wood *)
+  let artifact_id = Uuid.create () in
+  let player_id = Uuid.create () in
+  let text = "Awesome Artifact" in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_player ("Awesome Andy", Some player_id)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
+                     ]) in
+  let dynamo = run_with_ops ops in
+  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+                      (2,3)) in
+  match Dynamo.add_op dynamo op with
+  | Result.Error e -> ()
+  | Result.Ok () -> failwith "Should have a validation error"
+
+let create_artifact_validation_failure_rock _ =
+  (* Player doesn't have enough rock *)
+  let artifact_id = Uuid.create () in
+  let player_id = Uuid.create () in
+  let text = "Awesome Artifact" in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_player ("Awesome Andy", Some player_id)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
+                     ]) in
+  let dynamo = run_with_ops ops in
+  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+                      (2,3)) in
+  match Dynamo.add_op dynamo op with
+  | Result.Error e -> ()
+  | Result.Ok () -> failwith "Should have a validation error"
+
+let buildable_update_percent _ =
+  let artifact_id = Uuid.create () in
+  let player_id = Uuid.create () in
+  let text = "Awesome Artifact" in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_player ("Awesome Andy", Some player_id)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
+                     ; create (Player_create_artifact
+                                 (player_id, text, Some artifact_id)) (2,3)
+                     ]) in
+  let dynamo = run_with_ops ops in
+  let op = Game_op.(create (Buildable_update (artifact_id, Entity.Buildable.Building 35)) (2,3)) in
+  match Dynamo.add_op dynamo op with
+  | Result.Error e -> failwith "Error"
+  | Result.Ok () ->
+    Dynamo.step dynamo;
+    (* Assert player and game state are updated *)
+    let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
+    let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) artifact_id in
+    let artifact = Entity.({id=artifact_id; player_id; text}) in
+    assert_equal (Entity.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
+    assert_equal [artifact_id] (Player.buildables player);
+    assert_equal [] (Player.artifacts player)
+
+let buildable_update_complete _ =
+  let artifact_id = Uuid.create () in
+  let player_id = Uuid.create () in
+  let text = "Awesome Artifact" in
+  let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
+                     ; create (Add_resource Resources.Wood) (2,3)
+                     ; create (Add_player ("Awesome Andy", Some player_id)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
+                     ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
+                     ; create (Player_create_artifact
+                                 (player_id, text, Some artifact_id)) (2,3)
+                     ]) in
+  let dynamo = run_with_ops ops in
+  let op = Game_op.(create (Buildable_update (artifact_id, Entity.Buildable.Complete)) (2,3)) in
+  match Dynamo.add_op dynamo op with
+  | Result.Error e -> failwith "Error"
+  | Result.Ok () ->
+    Dynamo.step dynamo;
+    (* Assert player and game state are updated *)
+    let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
+    let artifact = Entity.({id=artifact_id; player_id; text}) in
+    assert_equal artifact (Hashtbl.find_exn (Dynamo.artifacts dynamo) artifact_id);
+    assert_equal [] (Player.buildables player);
+    assert_equal [artifact_id] (Player.artifacts player)
+
+let event_sources_update_buildable_action () =
+  (* Ensures that Event_source update works correctly *)
+  let r_ops, w_ops = Pipe.create () in
+  let r_resp, w_resp = Pipe.create () in
+  let player_id = Uuid.create () in
+  let ops = Game_op.([ create (Add_player ("Trevor", Some player_id)) (0,0)]) in
+  let _dynamo = run_with_ops ops in
+  let id = Uuid.create () in
+  let after = after_trivial in
+  don't_wait_for (Event_sources.update_buildable ~after id w_ops r_resp);
+  let assert_pipe = assert_from_pipe r_ops ae_game_op in
+  (* We should see 10 messages of building, then a Complete *)
+  let f status =
+    assert_pipe Game_op.(create (Buildable_update (id, status)) (0,0));
+    (* Write ok response back as is required by the event source contract *)
+    Pipe.write w_resp Result.ok_unit >>> fun () -> ()
+  in
+  List.iter ~f [
+   Entity.Buildable.Building 10;
+   Entity.Buildable.Building 20;
+   Entity.Buildable.Building 30;
+   Entity.Buildable.Building 40;
+   Entity.Buildable.Building 50;
+   Entity.Buildable.Building 60;
+   Entity.Buildable.Building 70;
+   Entity.Buildable.Building 80;
+   Entity.Buildable.Building 90;
+   Entity.Buildable.Complete;
+  ];
+  return ()
+
 let suite =
   "dynamo suite">:::
   [
@@ -272,4 +436,13 @@ let suite =
     "remove tree">::remove_tree;
     "remove rock">::remove_rock;
     "illegal remove tree">::illegal_remove_tree;
+    "create artifact success">::create_artifact_success;
+    "create artifact validation failure wood">::create_artifact_validation_failure_wood;
+    "create artifact validation failure rock">::create_artifact_validation_failure_rock;
+    "buildable update percent">::buildable_update_percent;
+    "buildable update complete">::buildable_update_complete;
+  ]
+
+let async_suite =
+  [ "update buildable event source", event_sources_update_buildable_action
   ]

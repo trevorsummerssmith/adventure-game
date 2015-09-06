@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>adventure game</title>
+
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
       body {
@@ -30,7 +31,31 @@
 	    background-color: #DDFBFF;
 	    color: #333;
 	    margin-bottom: 10px;
-    }
+     }
+
+     .progressBar {
+         height: 10px;
+         width: 100px;
+         position: relative;
+         -moz-border-radius: 25px;
+         -webkit-border-radius: 25px;
+         border-radius: 25px;
+         padding: 0px;
+         border: 1px solid #555;
+         display: inline-block;
+     }
+
+     .progressBar > span {
+         display: block;
+         height: 100%;
+         border-top-right-radius: 8px;
+         border-bottom-right-radius: 8px;
+         border-top-left-radius: 20px;
+         border-bottom-left-radius: 20px;
+         background-color: #555;
+         position: relative;
+         overflow: hidden;
+     }
     </style>
   </head>
   <body>

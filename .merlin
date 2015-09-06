@@ -1,4 +1,5 @@
 S .
+S tests/**
 B _build
 PKG ounit
 PKG core

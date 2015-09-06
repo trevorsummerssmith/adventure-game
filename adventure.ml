@@ -63,8 +63,29 @@ let respond_with_tile_description_and_player dynamo id posn =
   let resources = Player.resources player in
   let wood = Resources.get resources ~kind:Resources.Wood in
   let rock = Resources.get resources ~kind:Resources.Rock in
-  let player_status = Payloads_t.({wood; rock; posn={x;y}}) in
-
+  (* For now all buildables are artifacts so do a simple serialization *)
+  let buildable_to_json id =
+    let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) id in
+    let percent = match buildable.Entity.Buildable.percent_complete with
+      | Entity.Buildable.Building i -> i
+      | Entity.Buildable.Complete -> 100
+    in
+    Payloads_t.({percent; kind="Artifact"})
+  in
+  let buildables = Player.buildables player
+                   |> List.map ~f:buildable_to_json in
+  let artifacts_to_json id =
+    let artifact = Hashtbl.find_exn (Dynamo.artifacts dynamo) id in
+    let text = artifact.Entity.text in
+    Payloads_t.({text})
+  in
+  let artifacts = Player.artifacts player
+                  |>  List.map ~f: artifacts_to_json in
+  let player_status = Payloads_t.({ wood
+                                  ; rock
+                                  ; posn={x;y}
+                                  ; buildables
+                                  ; artifacts}) in
   (* Make the tile *)
   let tile = make_tile_payload dynamo posn in
   let response = Payloads_t.({tile; player_status}) in
@@ -143,6 +164,18 @@ let handle_player_harvest dynamo req body =
     in
     handle_player_action ~f dynamo req body
 
+let handle_player_build_artifact dynamo req body =
+  (* Assert artifact text *)
+  let uri = C.Request.uri req in
+  match Uri.get_query_param uri "text" with
+  | None -> bad_request "Must include artifact text"
+  | Some text ->
+    let f player posn =
+      let id = Player.id player in
+      Game_op.(create (Player_create_artifact (id, text, None)) posn)
+    in
+    handle_player_action ~f dynamo req body
+
 let handler dynamo body sock req =
   let path = C.Request.uri req |> Uri.path in
   match path, C.Request.meth req with
@@ -158,6 +191,7 @@ let handler dynamo body sock req =
   | "/react.js", `GET -> serve_file "./web" (Uri.of_string path)
   (* Dynamic *)
   | "/harvest", `GET -> handle_player_harvest dynamo req body
+  | "/artifact", `GET -> handle_player_build_artifact dynamo req body
   | "/hello", `GET -> respond ~body:(CA.Body.of_string "{\"msg\":\"hey there!\"}") `OK
   | "/message", `GET -> handle_message dynamo req body
   | "/player", `GET -> handle_player dynamo req body

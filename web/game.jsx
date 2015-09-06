@@ -125,14 +125,33 @@ var TileDescription = React.createClass ({
 var PlayerStatus = React.createClass ({
     // Displays the player's status in the game
     //
+    // @param this.props.buildables - payloads.atd buildable
+    // @param this.props.artifacts - payloads.atd artifact
     // @param this.props.wood - string: this is a number or '-' on startup
     // @param this.props.rock - string: this is a number or '-' on startup
     //
     render: function() {
+        var buildables = this.props.buildables.map(function (buildable) {
+            return (
+                <span className="playerBuildables">
+                    {buildable.kind}
+                    <span className="progressBar">
+                        <span style={{width: buildable.percent + '%'}}></span>
+                    </span>
+                </span>
+            );
+        });
+        var artifacts = this.props.artifacts.map(function (artifact) {
+            return (
+                <span>{artifact.text}</span>
+            );
+        });
         return (
             <div className="playerStatus">
                 <span>&gt;&gt;&gt; wood: <span id="wood">{this.props.wood}</span></span>
                 <span> rock: <span id="rock">{this.props.rock}</span></span>
+                <div>&gt;&gt;&gt; artifacts: {artifacts}</div>
+                <div>&gt;&gt;&gt; making: {buildables}</div>
             </div>
         );
     }
@@ -148,7 +167,7 @@ var PlayerMenu = React.createClass ({
             <div className="menu">
                 <span><a href="#" onClick={function(e){ this.props.onHarvest(e, RESOURCE_KIND_WOOD);}.bind(this)}>harvest</a></span>
                 <span> . <a href="#" onClick={function(e){ this.props.onHarvest(e, RESOURCE_KIND_ROCK);}.bind(this)}>mine</a></span>
-                <span> . build</span>
+                <span> . <a href="#" onClick={function(e) { this.props.onBuildArtifact(e); }.bind(this)}>make artifact</a></span>
                 <span> . attack</span>
                 <span> . talk</span>
                 <span> . enter</span>
@@ -203,6 +222,26 @@ var PlayerPage = React.createClass ({
                     kind: resourceKind
             },
             success: function(data) {
+                this.setState({data: data});
+            }.bind(this)
+        });
+    },
+    handleBuildArtifactSubmit: function(e) {
+        e.preventDefault();
+        var artifactText = "";
+        while (artifactText == "") {
+            artifactText = prompt("What will you inscribe on your artifact?", "");
+        }
+        ajax({
+            method: "GET",
+            url: "/artifact",
+            data: { lat: this.state.lat,
+                    long: this.state.long,
+                    playerId: this.props.playerId,
+                    text: artifactText
+            },
+            success: function(data) {
+                // TODO better object
                 this.setState({data: data});
             }.bind(this)
         });
@@ -267,7 +306,9 @@ var PlayerPage = React.createClass ({
                 playerPosn:{x:UNKNOWN_PLAYER_POSITION,
                             y:UNKNOWN_PLAYER_POSITION},
                 data:{
-                    player:{wood:"-",rock:"-"},
+                    player:{wood:"-",rock:"-",
+                            artifacts:[],
+                            buildables:[]},
                     tile: {messages: [],
                            desc:"A grove of sycamore trees stands a few feet away. Near to your feet are deep black rocks. A matte grey fortress sits a bit behind the trees."}
                 }
@@ -283,22 +324,20 @@ var PlayerPage = React.createClass ({
         //         this.state.data
         console.log("updateLocation: " + lat + " " + long);
         console.log("updateLocation: " + this.state.lat + " " + this.state.long);
-        if ((lat != this.state.lat) || (long != this.state.long)) {
-            ajax({
-                method: "GET",
-                url: "/player",
-                data: { lat: lat,
-                        long: long,
-                        playerId: this.props.playerId
-                },
-                success: function(data) {
-                    this.setState({lat: lat,
-                                   long: long,
-                                   playerPosn: data.player.posn,
-                                   data: data}); // TODO clean this payload up
-                }.bind(this)
-            });
-        }
+        ajax({
+            method: "GET",
+            url: "/player",
+            data: { lat: lat,
+                    long: long,
+                    playerId: this.props.playerId
+            },
+            success: function(data) {
+                this.setState({lat: lat,
+                               long: long,
+                               playerPosn: data.player.posn,
+                               data: data}); // TODO clean this payload up
+            }.bind(this)
+        });
     },
     getLocation: function() {
         // Use the location api to get the user's current location
@@ -342,9 +381,12 @@ var PlayerPage = React.createClass ({
     render: function() {
         return (
             <div>
-                <PlayerMenu onHarvest={this.handleHarvestSubmit} />
+                <PlayerMenu onHarvest={this.handleHarvestSubmit}
+                            onBuildArtifact={this.handleBuildArtifactSubmit} />
                 <PlayerStatus wood={this.state.data.player.wood}
-                              rock={this.state.data.player.rock} />
+                              rock={this.state.data.player.rock}
+                              artifacts={this.state.data.player.artifacts}
+                              buildables={this.state.data.player.buildables} />
                 <TileDescription desc={this.state.data.tile.desc} />
                 <div className="menu">messages
                     <form className="talkForm" onSubmit={this.handleMessageSubmit}>
@@ -361,6 +403,6 @@ var PlayerPage = React.createClass ({
 });
 
 React.render(
-    <PlayerPage playerId={getPlayerId()} locationPollInterval={10000} />,
+    <PlayerPage playerId={getPlayerId()} locationPollInterval={5000} />,
     document.getElementById("container")
 );
