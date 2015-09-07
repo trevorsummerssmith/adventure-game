@@ -1,6 +1,6 @@
 S .
 S tests/**
-B _build
+B _build/**
 PKG ounit
 PKG core
 PKG async
