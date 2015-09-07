@@ -8,7 +8,7 @@ let () =
   ] in
   let _ = List.map ~f:(fun s -> run_test_tt_main s) suites in
   ();
-  Test_dynamo.async_suite
+  Test_event_sources.async_suite
   |> Async_ounit.make_tests "Dynamo"
   >>= Async_ounit.run_async_tests_code
   >>= Shutdown.exit
