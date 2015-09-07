@@ -20,18 +20,18 @@ let event_sources_update_buildable_action () =
     (* Write ok response back as is required by the event source contract *)
     Pipe.write w_resp Result.ok_unit >>> fun () -> ()
   in
-  List.iter ~f [
-   Entity.Buildable.Building 10;
-   Entity.Buildable.Building 20;
-   Entity.Buildable.Building 30;
-   Entity.Buildable.Building 40;
-   Entity.Buildable.Building 50;
-   Entity.Buildable.Building 60;
-   Entity.Buildable.Building 70;
-   Entity.Buildable.Building 80;
-   Entity.Buildable.Building 90;
-   Entity.Buildable.Complete;
-  ];
+  List.iter ~f
+    [ Entity.Buildable.Building 10
+    ; Entity.Buildable.Building 20
+    ; Entity.Buildable.Building 30
+    ; Entity.Buildable.Building 40
+    ; Entity.Buildable.Building 50
+    ; Entity.Buildable.Building 60
+    ; Entity.Buildable.Building 70
+    ; Entity.Buildable.Building 80
+    ; Entity.Buildable.Building 90
+    ; Entity.Buildable.Complete
+    ];
   return ()
 
 let async_suite =

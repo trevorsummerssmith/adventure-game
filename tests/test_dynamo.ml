@@ -328,28 +328,27 @@ let buildable_update_complete _ =
 
 let suite =
   "dynamo suite">:::
-  [
-    "empty apply">::empty_apply;
-    "add one player">::add_one_player;
-    "add three players two same tile">::add_three_players_two_to_same_tile;
-    "move one player">::move_one_player;
-    "run player message">::run_player_message;
-    "add player message valid">::add_player_message_valid;
-    "add player message invalid player">::add_player_message_invalid_player;
-    "add player message invalid position">::add_player_message_invalid_position;
-    "add & run player harvest wood success">::add_and_run_player_harvest_wood_success;
-    "add player harvest wood failure no wood">::add_player_harvest_failure_no_resource;
-    "add tree">::add_tree;
-    "add rock">::add_rock;
-    "add rock & tree same">::add_rock_and_tree_same_tile;
-    "add rock & tree different">::add_rock_and_tree_different_tiles;
-    "multiple rocks & trees">::multiple_adds;
-    "remove tree">::remove_tree;
-    "remove rock">::remove_rock;
-    "illegal remove tree">::illegal_remove_tree;
-    "create artifact success">::create_artifact_success;
-    "create artifact validation failure wood">::create_artifact_validation_failure_wood;
-    "create artifact validation failure rock">::create_artifact_validation_failure_rock;
-    "buildable update percent">::buildable_update_percent;
-    "buildable update complete">::buildable_update_complete;
+  [ "empty apply">::empty_apply
+  ; "add one player">::add_one_player
+  ; "add three players two same tile">::add_three_players_two_to_same_tile
+  ; "move one player">::move_one_player
+  ; "run player message">::run_player_message
+  ; "add player message valid">::add_player_message_valid
+  ; "add player message invalid player">::add_player_message_invalid_player
+  ; "add player message invalid position">::add_player_message_invalid_position
+  ; "add & run player harvest wood success">::add_and_run_player_harvest_wood_success
+  ; "add player harvest wood failure no wood">::add_player_harvest_failure_no_resource
+  ; "add tree">::add_tree
+  ; "add rock">::add_rock
+  ; "add rock & tree same">::add_rock_and_tree_same_tile
+  ; "add rock & tree different">::add_rock_and_tree_different_tiles
+  ; "multiple rocks & trees">::multiple_adds
+  ; "remove tree">::remove_tree
+  ; "remove rock">::remove_rock
+  ; "illegal remove tree">::illegal_remove_tree
+  ; "create artifact success">::create_artifact_success
+  ; "create artifact validation failure wood">::create_artifact_validation_failure_wood
+  ; "create artifact validation failure rock">::create_artifact_validation_failure_rock
+  ; "buildable update percent">::buildable_update_percent
+  ; "buildable update complete">::buildable_update_complete
   ]
