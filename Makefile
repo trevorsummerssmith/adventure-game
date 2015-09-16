@@ -1,13 +1,13 @@
 .PHONY: all
 all: server gen_game
 
-OCAMLBUILD=ocamlbuild -use-ocamlfind -plugin-tag "package(ocamlbuild_atdgen)"
+OCAMLBUILD=ocamlbuild -I src -use-ocamlfind -plugin-tag "package(ocamlbuild_atdgen)"
 
-server: adventure.ml
-	$(OCAMLBUILD) adventure.native
+server: src/adventure.ml
+	$(OCAMLBUILD) src/adventure.native
 
-gen_game: gen_game.ml
-	$(OCAMLBUILD) gen_game.native
+gen_game: src/gen_game.ml
+	$(OCAMLBUILD) src/gen_game.native
 
 .PHONY: clean
 clean:

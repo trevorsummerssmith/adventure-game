@@ -1,4 +1,4 @@
-true: thread, debug, syntax(camlp4o), short_paths
+true: thread, debug, bin_annot, syntax(camlp4o), short_paths
 true: package(async), package(core), \
       package(sexplib.syntax), package(comparelib.syntax), \
       package(atdgen), package(uri), package(cohttp), package(cohttp.async), \

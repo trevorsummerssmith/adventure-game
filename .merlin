@@ -1,10 +1,10 @@
-S .
+S src/**
 S tests/**
 B _build/**
-PKG ounit
+PKG oUnit
 PKG core
 PKG async
 PKG cohttp
-PKG cohttp_async
+PKG cohttp.async
 PKG conduit
 PKG magic-mime
