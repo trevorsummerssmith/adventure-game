@@ -21,16 +21,16 @@ let event_sources_update_buildable_action () =
     Pipe.write w_resp Result.ok_unit >>> fun () -> ()
   in
   List.iter ~f
-    [ Entity.Buildable.Building 10
-    ; Entity.Buildable.Building 20
-    ; Entity.Buildable.Building 30
-    ; Entity.Buildable.Building 40
-    ; Entity.Buildable.Building 50
-    ; Entity.Buildable.Building 60
-    ; Entity.Buildable.Building 70
-    ; Entity.Buildable.Building 80
-    ; Entity.Buildable.Building 90
-    ; Entity.Buildable.Complete
+    [ Things.Buildable.Building 10
+    ; Things.Buildable.Building 20
+    ; Things.Buildable.Building 30
+    ; Things.Buildable.Building 40
+    ; Things.Buildable.Building 50
+    ; Things.Buildable.Building 60
+    ; Things.Buildable.Building 70
+    ; Things.Buildable.Building 80
+    ; Things.Buildable.Building 90
+    ; Things.Buildable.Complete
     ];
   return ()
 

@@ -1,6 +1,8 @@
 open Core.Std
 
-type t with sexp, compare
+type t = Entity.t with sexp_of
+
+val compare : t -> t -> int
 
 val create :
   ?id:Uuid.t
@@ -10,6 +12,16 @@ val create :
   -> posn:Posn.t
   -> string
   -> t
+
+(* TODO idea keep props in module?
+
+module Props : sig
+  val name : string Entity_store.Prop.t
+  val posn : Posn.t Entity_store.Prop.t
+  val resources : Resources.t Entity_store.Prop.t
+  val buildables : Uuid.t list Entity_store.Prop.t
+  val artifacts : Uuid.t list Entity_store.Prop.t
+   end*)
 
 (** Functional updates *)
 

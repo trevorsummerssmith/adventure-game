@@ -1,19 +1,16 @@
 open Core.Std
 
-type artifact =
-  { id : Uuid.t
-  ; player_id : Uuid.t
-  ; text      : string
-  } with sexp, compare
+module Id = Uuid
 
-module Buildable = struct
-  type status =
-    | Building of int
-    (** 0...99 inclusive. *)
-    | Complete with sexp, compare
+module Prop = Univ_map.Key
 
-  type t =
-    { entity : artifact
-    ; percent_complete : status
-    } with sexp, compare
-end
+type t = Univ_map.t with sexp_of
+
+let id_prop = Prop.create ~name:"id" Id.sexp_of_t
+
+let create ?id () =
+  let id = Option.value ~default:(Id.create ()) id in
+  Univ_map.add_exn Univ_map.empty id_prop id
+
+let id entity =
+  Univ_map.find_exn entity id_prop

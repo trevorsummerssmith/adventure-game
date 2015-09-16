@@ -1,43 +1,52 @@
 open Core.Std
 
-type t =
-  { name      : string
+type t = Entity.t with sexp_of
+
+    (* { name      : string
   ; posn      : Posn.t
   ; id        : Uuid.t
   ; resources : Resources.t
   ; buildables : Uuid.t list
   ; artifacts  : Uuid.t list
-  } with sexp, compare
+      } with sexp, compare*)
+
+let compare (a : t) (b : t) = compare a b
 
 let create ?id ?(buildables=[]) ?(artifacts=[]) ~resources ~posn name =
-  { name
+  Entity.create ?id ()
+  |> Props.add_posn ~posn
+  |> Props.add_name ~name
+  |> Props.add_buildables ~buildables
+  |> Props.add_artifacts ~artifacts
+
+  (*  { name
   ; posn
   ; id = Option.value ~default:(Uuid.create ()) id
   ; resources
   ; buildables
   ; artifacts
-  }
+    }*)
 
 let with_buildables p buildables =
-  {p with buildables}
+  Props.add_buildables p ~buildables
 
 let with_resources p resources =
-  {p with resources}
+  Props.add_resources p ~resources
 
 let with_artifacts p artifacts =
-  {p with artifacts}
+  Props.add_artifacts p ~artifacts
 
 let move p posn =
-  {p with posn}
+  Props.add_posn p ~posn
 
-let name p = p.name
+let name p = Props.get_name p
 
-let posn p = p.posn
+let posn p = Props.get_posn p
 
-let id p = p.id
+let id p = Entity.id p
 
-let resources p = p.resources
+let resources p = Props.get_resources p
 
-let buildables {buildables; _} = buildables
+let buildables p = Props.get_buildables p
 
-let artifacts {artifacts; _} = artifacts
+let artifacts p = Props.get_artifacts p

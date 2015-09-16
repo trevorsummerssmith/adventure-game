@@ -66,9 +66,9 @@ let respond_with_tile_description_and_player dynamo id posn =
   (* For now all buildables are artifacts so do a simple serialization *)
   let buildable_to_json id =
     let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) id in
-    let percent = match buildable.Entity.Buildable.percent_complete with
-      | Entity.Buildable.Building i -> i
-      | Entity.Buildable.Complete -> 100
+    let percent = match buildable.Things.Buildable.percent_complete with
+      | Things.Buildable.Building i -> i
+      | Things.Buildable.Complete -> 100
     in
     Payloads_t.({percent; kind="Artifact"})
   in
@@ -76,7 +76,7 @@ let respond_with_tile_description_and_player dynamo id posn =
                    |> List.map ~f:buildable_to_json in
   let artifacts_to_json id =
     let artifact = Hashtbl.find_exn (Dynamo.artifacts dynamo) id in
-    let text = artifact.Entity.text in
+    let text = artifact.Things.text in
     Payloads_t.({text})
   in
   let artifacts = Player.artifacts player

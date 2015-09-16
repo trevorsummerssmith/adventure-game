@@ -237,8 +237,8 @@ let create_artifact_success _ =
     Dynamo.step dynamo;
     let buildables = Dynamo.buildables dynamo
                      |> Hashtbl.to_alist in
-    let entity = Entity.({id=artifact_id; player_id; text}) in
-    let answer = Entity.Buildable.({percent_complete=Building 0; entity}) in
+    let entity = Things.({id=artifact_id; player_id; text}) in
+    let answer = Things.Buildable.({percent_complete=Building 0; entity}) in
     assert_equal buildables [artifact_id, answer]
 
 let create_artifact_validation_failure_wood _ =
@@ -288,7 +288,7 @@ let buildable_update_percent _ =
                                  (player_id, text, Some artifact_id)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Buildable_update (artifact_id, Entity.Buildable.Building 35)) (2,3)) in
+  let op = Game_op.(create (Buildable_update (artifact_id, Things.Buildable.Building 35)) (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> failwith "Error"
   | Result.Ok () ->
@@ -296,8 +296,8 @@ let buildable_update_percent _ =
     (* Assert player and game state are updated *)
     let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
     let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) artifact_id in
-    let artifact = Entity.({id=artifact_id; player_id; text}) in
-    assert_equal (Entity.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
+    let artifact = Things.({id=artifact_id; player_id; text}) in
+    assert_equal (Things.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
     assert_equal [artifact_id] (Player.buildables player);
     assert_equal [] (Player.artifacts player)
 
@@ -314,14 +314,14 @@ let buildable_update_complete _ =
                                  (player_id, text, Some artifact_id)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Buildable_update (artifact_id, Entity.Buildable.Complete)) (2,3)) in
+  let op = Game_op.(create (Buildable_update (artifact_id, Things.Buildable.Complete)) (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> failwith "Error"
   | Result.Ok () ->
     Dynamo.step dynamo;
     (* Assert player and game state are updated *)
     let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
-    let artifact = Entity.({id=artifact_id; player_id; text}) in
+    let artifact = Things.({id=artifact_id; player_id; text}) in
     assert_equal artifact (Hashtbl.find_exn (Dynamo.artifacts dynamo) artifact_id);
     assert_equal [] (Player.buildables player);
     assert_equal [artifact_id] (Player.artifacts player)

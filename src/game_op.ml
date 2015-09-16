@@ -26,7 +26,7 @@ type code =
   (* Player id, kind of resource to harvest *)
   | Player_create_artifact of Uuid.t * string * Uuid.t option
   (* Player id, artifact text, optional id of the artifact *)
-  | Buildable_update of Uuid.t * Entity.Buildable.status
+  | Buildable_update of Uuid.t * Things.Buildable.status
   (* Entity uuid, status of the entity update *)
   | Add_resource of Resources.kind
   | Remove_resource of Resources.kind with sexp, compare
