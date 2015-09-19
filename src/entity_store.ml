@@ -23,7 +23,7 @@ let get_prop_exn tbl id prop =
   let map = Hashtbl.find_exn tbl id in
   Univ_map.find_exn map prop
 
-let set_prop tbl id prop value =
+let set_prop_exn tbl id prop value =
   let map = Hashtbl.find_exn tbl id in
   let map = Univ_map.set map prop value in
   Hashtbl.replace tbl ~key:id ~data:map
@@ -43,5 +43,25 @@ let decr_prop tbl id prop =
       (function
         | None -> Some (-1)
         | Some n -> Some (n - 1))
+  in
+  Hashtbl.replace tbl ~key:id ~data:map
+
+let add_to_prop_exn tbl id prop value =
+  let map = Hashtbl.find_exn tbl id in
+  let map = Univ_map.change map prop
+      (function
+        | None -> Some [value]
+        | Some ls -> Some (value :: ls))
+  in
+  Hashtbl.replace tbl ~key:id ~data:map
+
+let remove_from_prop_exn tbl id prop value =
+  (* TODO should throw exn on not found key? *)
+  let map = Hashtbl.find_exn tbl id in
+  let map = Univ_map.change map prop
+      (function
+        | None -> Some []
+        | Some ls ->
+          Some (List.filter ls ~f:(fun a -> a <> value)))
   in
   Hashtbl.replace tbl ~key:id ~data:map

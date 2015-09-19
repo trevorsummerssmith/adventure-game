@@ -36,19 +36,19 @@ let serve_file docroot uri =
 
 let make_tile_payload dynamo posn =
   let tile = Dynamo.get_tile dynamo posn in
-  let players = Dynamo.players dynamo in
   let player_names = Tile.players tile
-                     |> List.map ~f:(Hashtbl.find_exn players)
-                     |> List.map ~f:Player.name
+                     |> List.map ~f:(Props.get_name (Dynamo.store dynamo))
                      |> String.concat ~sep:"," in
   let messages = Tile.messages tile
                  |> List.map ~f:(fun m ->
-                     let player_name = m.Tile.player |> Hashtbl.find_exn players |> Player.name in
+                     let player_name = m.Tile.player
+                                       |> Props.get_name (Dynamo.store dynamo)
+                     in
                      let time = Time.to_string m.Tile.time in
                      let text = m.Tile.text in
                      Payloads_t.({ player_name
-                                ; time
-                                ; text })
+                                 ; time
+                                 ; text })
                    ) in
   let resources kind = Tile.resources tile |> Resources.get ~kind in
   let desc = Printf.sprintf "A small field with %d trees and %d rocks and %s players"
@@ -58,9 +58,9 @@ let make_tile_payload dynamo posn =
   Payloads_t.({desc; messages})
 
 let respond_with_tile_description_and_player dynamo id posn =
-  let player = Hashtbl.find_exn (Dynamo.players dynamo) id in
-  let x,y = Player.posn player in
-  let resources = Player.resources player in
+  let player = Entity_store.get_exn (Dynamo.store dynamo) id in
+  let x, y = Props.posn player in
+  let resources = Props.resources player in
   let wood = Resources.get resources ~kind:Resources.Wood in
   let rock = Resources.get resources ~kind:Resources.Rock in
   (* For now all buildables are artifacts so do a simple serialization *)
@@ -72,15 +72,15 @@ let respond_with_tile_description_and_player dynamo id posn =
     in
     Payloads_t.({percent; kind="Artifact"})
   in
-  let buildables = Player.buildables player
+  let buildables = Props.buildables player
                    |> List.map ~f:buildable_to_json in
   let artifacts_to_json id =
     let artifact = Hashtbl.find_exn (Dynamo.artifacts dynamo) id in
     let text = artifact.Things.text in
     Payloads_t.({text})
   in
-  let artifacts = Player.artifacts player
-                  |>  List.map ~f: artifacts_to_json in
+  let artifacts = Props.artifacts player
+                  |> List.map ~f: artifacts_to_json in
   let player_status = Payloads_t.({ wood
                                   ; rock
                                   ; posn={x;y}
@@ -108,8 +108,7 @@ let process_player_params dynamo req =
         let id = Uuid.of_string playerId in
         let lat = Float.of_string lat in
         let long = Float.of_string long in
-        let players = Dynamo.players dynamo in
-        match Hashtbl.find players id with
+        match Entity_store.get (Dynamo.store dynamo) id with
         | Some player ->
           begin
             (* TODO assumption board is a square *)
@@ -132,11 +131,12 @@ let handle_player_action ~(f:Player.t -> Posn.t -> Game_op.t) dynamo req body =
    f player posn
    |> Dynamo.add_op dynamo >>| fun () ->
   Dynamo.step dynamo; dynamo, player, posn) |> function
-  | Ok (dynamo, player, posn) -> respond_with_tile_description_and_player dynamo (Player.id player) posn
+  | Ok (dynamo, player, posn) ->
+    respond_with_tile_description_and_player dynamo (Entity.id player) posn
   | Error e -> bad_request (Error.to_string_hum e)
 
 let handle_player dynamo req body =
-  let f player posn = Game_op.(create (Move_player (Player.id player)) posn) in
+  let f player posn = Game_op.(create (Move_player (Entity.id player)) posn) in
   handle_player_action ~f dynamo req body
 
 let handle_message dynamo req body =
@@ -145,7 +145,7 @@ let handle_message dynamo req body =
   match Uri.get_query_param uri "message" with
   | Some text ->
     let f player posn =
-      let id = Player.id player in
+      let id = Entity.id player in
       Game_op.(create (Player_message (id,Time.now (),text)) posn)
     in
     handle_player_action ~f dynamo req body
@@ -159,7 +159,7 @@ let handle_player_harvest dynamo req body =
   | Some text ->
     let kind = Resources.kind_of_string text in
     let f player posn =
-      let id = Player.id player in
+      let id = Entity.id player in
       Game_op.(create (Player_harvest (id,kind)) posn)
     in
     handle_player_action ~f dynamo req body
@@ -171,7 +171,7 @@ let handle_player_build_artifact dynamo req body =
   | None -> bad_request "Must include artifact text"
   | Some text ->
     let f player posn =
-      let id = Player.id player in
+      let id = Entity.id player in
       Game_op.(create (Player_create_artifact (id, text, None)) posn)
     in
     handle_player_action ~f dynamo req body
@@ -197,12 +197,12 @@ let handler dynamo body sock req =
   | "/player", `GET -> handle_player dynamo req body
   | "/players", `GET ->
     (* List players *)
+    let get_name = Props.get_name (Dynamo.store dynamo) in
     let player_str =
       Dynamo.players dynamo
-      |> Hashtbl.to_alist
-      |> List.map ~f:(fun (id,p) -> Printf.sprintf "\"%s\":\"%s\""
+      |> List.map ~f:(fun id -> Printf.sprintf "\"%s\":\"%s\""
                          (Uuid.to_string id)
-                         (Player.name p))
+                         (get_name id))
       |> String.concat ~sep:"," in
     let s = Printf.sprintf "{\"players\":{%s}}" player_str in
     respond ~body:(CA.Body.of_string s) `OK
@@ -210,10 +210,9 @@ let handler dynamo body sock req =
       (* Optionally a player *)
       let uri = C.Request.uri req in
       let param = Uri.get_query_param uri "playerId" in
-      let player = Option.map ~f:(fun id ->
-                            let tbl = Dynamo.players dynamo in
-                            Hashtbl.find_exn tbl (Uuid.of_string id) |>
-                            Player.posn) param in
+      let player = Option.map ~f:(fun id_str ->
+          Uuid.of_string id_str
+          |> Props.get_posn (Dynamo.store dynamo)) param in
       let to_map_tile tile : Payloads_t.map_tile =
         let players = Tile.players tile |> List.is_empty |> not in
         let resources = Tile.resources tile |> Resources.get in

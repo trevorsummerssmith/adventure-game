@@ -33,7 +33,7 @@ val add_op : t -> Game_op.t -> unit Or_error.t
 
 val get_tile : t -> Posn.t -> Tile.t
 
-val players : t -> (Uuid.t, Player.t) Hashtbl.t
+val players : t -> Entity.Id.t list
 
 val dimensions : t -> Posn.t
 

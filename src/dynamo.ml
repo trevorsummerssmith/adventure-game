@@ -10,9 +10,10 @@ open Async.Std
 type t =
   { mutable game : Game.t
   ; board : Board.t
-  ; players : (Uuid.t, Player.t) Hashtbl.t (* TODO this needs to be a list of player id *)
-  (* Mapping from player id to players. The id should only come from the player
-     entity itself. *)
+  ; mutable players : Entity.Id.t list
+  (* Ids of the players in the game.
+     Currently this is only used to get the list of players at the beginning
+     of the game. *)
   ; artifacts : (Uuid.t, Things.artifact) Hashtbl.t
   (* Mapping from artifact id to artifact *)
   ; buildables : (Uuid.t, Things.Buildable.t) Hashtbl.t
@@ -29,7 +30,7 @@ type t =
 let create game =
   { game
   ; board = Game.board_dimensions game |> Board.create
-  ; players = Uuid.Table.create ()
+  ; players = []
   ; artifacts = Uuid.Table.create ()
   ; buildables = Uuid.Table.create ()
   ; store = Entity_store.create ()
@@ -46,7 +47,7 @@ let validate_player_and_posn dynamo id posn =
      2 Player is on the same position as posn *)
   let open Or_error.Monad_infix in
   validate_player dynamo id >>= fun player ->
-  let player_posn = Props.posn dynamo.store id in
+  let player_posn = Props.get_posn dynamo.store id in
   if player_posn = posn then
     Result.ok_unit
   else
@@ -83,7 +84,7 @@ let validate_player_create_artifact dynamo player_id text =
   *)
   let open Or_error.Monad_infix in
   validate_player dynamo player_id >>= fun player ->
-  let resources = Props.resources dynamo.store player_id
+  let resources = Props.get_resources dynamo.store player_id
                   |> Resources.get in
   let wood = resources ~kind:Resources.Wood in
   let rock = resources ~kind:Resources.Rock in
@@ -157,14 +158,14 @@ and take_action dynamo op =
     Entity_store.replace dynamo.store id player;
     let tile = Board.get board op.posn in
     let players = id :: (Tile.players tile) in
-    Board.set board (Tile.from ~players tile) op.posn
+    Board.set board (Tile.from ~players tile) op.posn;
+    dynamo.players <- id :: dynamo.players
   | Move_player id ->
     (* 1. Find player's current position and remove it *)
-    let cur_posn = Props.posn dynamo.store id in
+    let cur_posn = Props.get_posn dynamo.store id in
     let tile = Board.get board cur_posn in
     let players = List.filter ~f:(fun a -> a <> id) (Tile.players tile) in
     let () = Board.set board (Tile.from ~players tile) cur_posn in
-    (* TODO Props.remove_from_players dynamo.store tile_id id *)
     (* 2. Update new tile *)
     let tile = Board.get board op.posn in
     let players = id :: (Tile.players tile) in
@@ -184,7 +185,7 @@ and take_action dynamo op =
     (* 1. Update the player 2. Update the board *)
     let amt = (Tile.resources tile |> Resources.get ~kind) - 1 in
     let () = assert (amt >= 0) in
-    Props.resources dynamo.store id
+    Props.get_resources dynamo.store id
     |> Resources.incr ~kind
     |> Props.set_resources dynamo.store id;
     let tile = Tile.resources tile
@@ -199,24 +200,11 @@ and take_action dynamo op =
     *)
     let update_player player_id artifact_id =
       let resources = Entity_store.get_exn dynamo.store player_id
-                      |> Props.get_resources in
+                      |> Props.resources in
       assert (Resources.(get resources ~kind:Wood) >= 1);
       assert (Resources.(get resources ~kind:Rock) >= 1);
       Props.set_resources dynamo.store player_id resources;
       Props.add_to_buildables dynamo.store player_id artifact_id;
-
-      (*let player = Hashtbl.find_exn dynamo.players player_id in
-      let resources = Player.resources player in
-      assert (Resources.(get resources ~kind:Wood) >= 1);
-      assert (Resources.(get resources ~kind:Rock) >= 1);
-      let player = resources
-                   |> Resources.decr ~kind:Resources.Wood
-                   |> Resources.decr ~kind:Resources.Rock
-                   |> Player.with_resources player
-                   |> fun p -> Player.with_buildables p
-                     (artifact_id :: Player.buildables player)
-      in
-        Hashtbl.replace dynamo.players ~key:player_id ~data:player *)
     in
     let id = Option.value ~default:(Uuid.create ()) id_op in
     update_player player_id id;
@@ -250,15 +238,6 @@ and take_action dynamo op =
         let player_id = artifact.Things.player_id in
         Props.remove_from_buildables dynamo.store player_id id;
         Props.add_to_artifacts dynamo.store player_id artifact.Things.id
-        (*
-        let player_id = artifact.Things.player_id in
-        let player = Hashtbl.find_exn dynamo.players player_id in
-        let buildables = Player.buildables player
-                         |> List.filter ~f:(fun x -> x <> id) in
-        let player = Player.with_buildables player buildables in
-        (* Add to the user *)
-        let player = Player.with_artifacts player (artifact.Things.id::(Player.artifacts player)) in
-        Hashtbl.replace dynamo.players ~key:player_id ~data:player*)
     end
   | Add_resource kind ->
     let tile = Tile.resources tile

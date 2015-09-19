@@ -41,20 +41,18 @@ let assert_players_on_board dynamo =
      tiles on the board. N.b. does not do the other way! There could be a player
      on board tile not in the player list and this function would not raise *)
   (* A list of lists where each list is the set of players on the same tile *)
+  let get_posn = Props.get_posn (Dynamo.store dynamo) in
   let players_by_posn =
     Dynamo.players dynamo
-    |> Hashtbl.to_alist
-    |> List.map ~f:(fun (_,p) -> p)
-    |> List.sort ~cmp:(fun p1 p2 -> compare (Player.posn p1) (Player.posn p2))
-    |> List.group ~break:(fun p1 p2 -> (Player.posn p1) <> (Player.posn p2))
+    |> List.sort ~cmp:(fun id1 id2 -> compare (get_posn id1) (get_posn id2))
+    |> List.group ~break:(fun id1 id2 -> (get_posn id1) <> (get_posn id2))
   in
   List.iter ~f:(fun players ->
-      let posn = List.hd_exn players |> Player.posn in
+      let posn = List.hd_exn players |> get_posn in
       let tile_player_ids = Dynamo.get_tile dynamo posn |> Tile.players in
-      let ids = List.map ~f:Player.id players in
       assert_equal
         (List.sort ~cmp:Uuid.compare tile_player_ids)
-        (List.sort ~cmp:Uuid.compare ids)
+        (List.sort ~cmp:Uuid.compare players)
     ) players_by_posn
 
 let make_tile ?(players=[]) (resources : (Resources.kind,int) List.Assoc.t) =

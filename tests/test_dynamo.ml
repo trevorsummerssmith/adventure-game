@@ -17,11 +17,11 @@ let add_one_player _ =
   *)
   let ops = [Game_op.(create (Add_player ("Purple Player", None)) (2,2))] in
   let dynamo = run_with_ops ops in
-  let players = Dynamo.players dynamo |> Hashtbl.to_alist in
+  let players = Dynamo.players dynamo in
   assert_equal 1 (List.length players);
-  let (id,player) = List.hd_exn players in
-  assert_equal "Purple Player" (Player.name player);
-  assert_equal (2,2) (Player.posn player);
+  let id = List.hd_exn players in
+  assert_equal "Purple Player" (Props.get_name (Dynamo.store dynamo) id);
+  assert_equal (2,2) (Props.get_posn (Dynamo.store dynamo) id);
   ae_tile (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (2,2))
 
 let add_three_players_two_to_same_tile _ =
@@ -32,15 +32,19 @@ let add_three_players_two_to_same_tile _ =
              create (Add_player ("Blue Player", None)) (3,5);
             ] in
   let dynamo = run_with_ops ops in
-  let players = Dynamo.players dynamo |> Hashtbl.to_alist in
+  let players = Dynamo.players dynamo in
   assert_equal 3 (List.length players);
-  (* Ignore the ids, are the players correct? *)
-  let players_sorted = List.map ~f:(fun (_,p) -> Player.name p, Player.posn p) players
+  let players_sorted = List.map ~f:(fun id ->
+      let player = Entity_store.get_exn (Dynamo.store dynamo) id in
+      Props.name player, Props.posn player) players
                        |> List.sort ~cmp:(fun (n1,_) (n2,_) -> String.compare n1 n2)
   in
-  assert_equal ["Blue Player", (3,5);
-                "Purple Player", (2,2);
-                "Red Player", (2,2)] players_sorted;
+  assert_equal ~printer:(fun ls ->
+      List.map ~f:(fun (name, (x,y)) -> sprintf "%s (%d,%d)" name x y) ls
+      |> String.concat ~sep:",")
+    ["Blue Player", (3,5);
+     "Purple Player", (2,2);
+     "Red Player", (2,2)] players_sorted;
   (* Check board *)
   assert_players_on_board dynamo
 
@@ -51,8 +55,7 @@ let move_one_player _ =
              create (Move_player id) (3,3);
             ] in
   let dynamo = run_with_ops ops in
-  let player = Hashtbl.find_exn (Dynamo.players dynamo) id in
-  assert_equal (3,3) (Player.posn player);
+  assert_equal (3,3) (Props.get_posn (Dynamo.store dynamo) id);
   ae_tile Tile.empty (Dynamo.get_tile dynamo (2,2));
   ae_tile (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (3,3))
 
@@ -137,8 +140,8 @@ let add_and_run_player_harvest_wood_success _ =
   |> Dynamo.add_op dynamo
   |> assert_equal Result.ok_unit;
   Dynamo.step dynamo;
-  assert_equal 1 (Hashtbl.find_exn (Dynamo.players dynamo) id
-                  |> Player.resources |> Resources.get ~kind:Resources.Wood);
+  assert_equal 1 (Props.get_resources (Dynamo.store dynamo) id
+                  |> Resources.get ~kind:Resources.Wood);
   ae_tile (make_tile ~players:[id] Resources.([Wood, 1; Rock, 2])) (Dynamo.get_tile dynamo (2,3))
 
 let add_player_harvest_failure_no_resource _ =
@@ -294,12 +297,12 @@ let buildable_update_percent _ =
   | Result.Ok () ->
     Dynamo.step dynamo;
     (* Assert player and game state are updated *)
-    let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
+    let player = Entity_store.get_exn (Dynamo.store dynamo) player_id in
     let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) artifact_id in
     let artifact = Things.({id=artifact_id; player_id; text}) in
     assert_equal (Things.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
-    assert_equal [artifact_id] (Player.buildables player);
-    assert_equal [] (Player.artifacts player)
+    assert_equal [artifact_id] (Props.buildables player);
+    assert_equal [] (Props.artifacts player)
 
 let buildable_update_complete _ =
   let artifact_id = Uuid.create () in
@@ -320,11 +323,11 @@ let buildable_update_complete _ =
   | Result.Ok () ->
     Dynamo.step dynamo;
     (* Assert player and game state are updated *)
-    let player = Hashtbl.find_exn (Dynamo.players dynamo) player_id in
+    let player = Entity_store.get_exn (Dynamo.store dynamo) player_id in
     let artifact = Things.({id=artifact_id; player_id; text}) in
     assert_equal artifact (Hashtbl.find_exn (Dynamo.artifacts dynamo) artifact_id);
-    assert_equal [] (Player.buildables player);
-    assert_equal [artifact_id] (Player.artifacts player)
+    assert_equal [] (Props.buildables player);
+    assert_equal [artifact_id] (Props.artifacts player)
 
 let suite =
   "dynamo suite">:::

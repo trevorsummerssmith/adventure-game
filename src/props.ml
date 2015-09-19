@@ -1,72 +1,82 @@
 open Core.Std
 
-let posn_prop = Entity.Prop.create ~name:"posn" Posn.sexp_of_t
+module E = Entity_store
+module U = Univ_map
 
-let posn es id =
-  Entity_store.get_prop_exn es id posn_prop
+let create_prop name sexp_of =
+  Entity.Prop.create ~name sexp_of
+
+let posn_prop = create_prop "posn" Posn.sexp_of_t
+let name_prop = create_prop "name" String.sexp_of_t
+let resources_prop = create_prop "resources" Resources.sexp_of_t
+let buildables_prop = create_prop "buildables" <:sexp_of<Uuid.t list>>
+let artifacts_prop = create_prop "artifacts" <:sexp_of<Uuid.t list>>
+
+let get_posn es id =
+  E.get_prop_exn es id posn_prop
 
 let set_posn es id posn =
-  failwith "not implemented"
+  E.set_prop_exn es id posn_prop posn
 
-let get_posn entity =
-  failwith "not implemented"
+let posn entity =
+  U.find_exn entity posn_prop
 
 let add_posn entity ~posn =
-  failwith "not implemented"
+  U.add_exn entity posn_prop posn
 
-let name es id =
-  failwith "not implemented"
+let get_name es id =
+  E.get_prop_exn es id name_prop
 
 let set_name es id name =
-  failwith "not implemented"
+  E.set_prop_exn es id name_prop name
 
-let get_name entity =
-  failwith "not implemented"
+let name entity =
+  U.find_exn entity name_prop
 
 let add_name entity ~name =
-  failwith "not implemented"
+  U.add_exn entity name_prop name
 
-let resources es id =
-  failwith "not implemented"
+let get_resources es id =
+  E.get_prop_exn es id resources_prop
 
 let set_resources es id resources =
-  failwith "not implemented"
+  E.set_prop_exn es id resources_prop resources
 
-let get_resources entity =
-  failwith "not implemented"
+let resources entity =
+  U.find_exn entity resources_prop
 
 let add_resources entity ~resources =
-  failwith "not implemented"
+  U.add_exn entity resources_prop resources
 
-let buildables es id =
-  failwith "not implemented"
+let get_buildables es id =
+  E.get_prop_exn es id buildables_prop
 
 let set_buildables es id buildables =
-  failwith "not implemented"
+  E.set_prop_exn es id buildables_prop buildables
 
 let add_to_buildables es ~id ~buildable =
-  failwith "not implemented"
+  E.add_to_prop_exn es id buildables_prop buildable
 
 let remove_from_buildables es ~id ~buildable =
-  failwith "not implemented"
+  E.remove_from_prop_exn es id buildables_prop buildable
 
-let get_buildables entity =
-  failwith "not implemented"
+let buildables entity =
+  U.find_exn entity buildables_prop
 
 let add_buildables entity ~buildables =
-  failwith "not implemented"
+  U.add_exn entity buildables_prop buildables
 
-let artifacts es id =
-  failwith "not implemented"
+let get_artifacts es id =
+  E.get_prop_exn es id artifacts_prop
 
 let set_artifacts es id artifacts =
-  failwith "not implemented"
+  E.set_prop_exn es id artifacts_prop artifacts
 
 let add_to_artifacts es ~id ~artifact =
-  failwith "not implemented"
+  E.add_to_prop_exn es id artifacts_prop artifact
 
-let get_artifacts entity =
-  failwith "not implemented"
+let artifacts entity =
+  U.find_exn entity artifacts_prop
 
 let add_artifacts entity ~artifacts =
-  failwith "not implemented"
+  U.add_exn entity artifacts_prop artifacts
