@@ -16,6 +16,9 @@ let ae_sexp ?cmp ?pp_diff ?msg sexp a a' =
   assert_equal ?cmp ?pp_diff ?msg
     ~printer:(fun x -> x |> sexp |> Sexp.to_string_hum) a a'
 
+let ae_uuid_list ls ls' =
+  ae_sexp <:sexp_of<Uuid.t list>> ls ls'
+
 let ae_player p p' =
   ae_sexp ~cmp:(fun a b -> (Player.compare a b) = 0) Player.sexp_of_t p p'
 

@@ -301,8 +301,8 @@ let buildable_update_percent _ =
     let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) artifact_id in
     let artifact = Things.({id=artifact_id; player_id; text}) in
     assert_equal (Things.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
-    assert_equal [artifact_id] (Props.buildables player);
-    assert_equal [] (Props.artifacts player)
+    ae_uuid_list [artifact_id] (Props.buildables player);
+    ae_uuid_list [] (Props.artifacts player)
 
 let buildable_update_complete _ =
   let artifact_id = Uuid.create () in
@@ -326,8 +326,8 @@ let buildable_update_complete _ =
     let player = Entity_store.get_exn (Dynamo.store dynamo) player_id in
     let artifact = Things.({id=artifact_id; player_id; text}) in
     assert_equal artifact (Hashtbl.find_exn (Dynamo.artifacts dynamo) artifact_id);
-    assert_equal [] (Props.buildables player);
-    assert_equal [artifact_id] (Props.artifacts player)
+    ae_uuid_list [] (Props.buildables player);
+    ae_uuid_list [artifact_id] (Props.artifacts player)
 
 let suite =
   "dynamo suite">:::
