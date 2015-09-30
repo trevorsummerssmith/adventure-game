@@ -1,30 +1,16 @@
 open Core.Std
 
-type message =
-  { player : Uuid.t
-  ; time   : Time.t
-  ; text   : string
-  } with sexp, compare
+type t = Entity.t with sexp_of
 
-type t with sexp, compare
-
-val create :
-  resources:Resources.t
-  -> players:Uuid.t list
-  -> messages:message list
+val create
+  : ?id:Uuid.t
+  -> resources:Resources.t
+  -> players:Entity.Id.t list
+  -> messages:Message.t list
+  -> unit
   -> t
 
-val from :
-  ?resources:Resources.t
-  -> ?players:Uuid.t list
-  -> ?messages:message list
-  -> t
-  -> t
+val shallow_compare : t -> t -> int
+(** Compares all fields except id *)
 
 val empty : t
-
-val with_resources : t -> Resources.t -> t
-
-val resources : t -> Resources.t
-val players : t -> Uuid.t list
-val messages : t -> message list

@@ -23,7 +23,8 @@ let ae_player p p' =
   ae_sexp ~cmp:(fun a b -> (Player.compare a b) = 0) Player.sexp_of_t p p'
 
 let ae_tile t t' =
-  ae_sexp ~cmp:(fun a b -> (Tile.compare a b) = 0) Tile.sexp_of_t t t'
+  let cmp a b = (Tile.shallow_compare a b) = 0 in
+  ae_sexp ~cmp Tile.sexp_of_t t t'
 
 let ae_game_op op op' =
   (* Ignore Game_op's time (because it is computer assigned) *)
@@ -52,7 +53,7 @@ let assert_players_on_board dynamo =
   in
   List.iter ~f:(fun players ->
       let posn = List.hd_exn players |> get_posn in
-      let tile_player_ids = Dynamo.get_tile dynamo posn |> Tile.players in
+      let tile_player_ids = Dynamo.get_tile dynamo posn |> Props.players in
       assert_equal
         (List.sort ~cmp:Uuid.compare tile_player_ids)
         (List.sort ~cmp:Uuid.compare players)
@@ -60,4 +61,4 @@ let assert_players_on_board dynamo =
 
 let make_tile ?(players=[]) (resources : (Resources.kind,int) List.Assoc.t) =
   let resources = Resources.of_alist_exn resources in
-  Tile.from ~players ~resources Tile.empty
+  Tile.create ~players ~resources ~messages:[] ()

@@ -1,41 +1,29 @@
 open Core.Std
 
-type message =
-  { player : Uuid.t
-  ; time   : Time.t
-  ; text   : string
-  } with sexp, compare
+type t = Entity.t with sexp_of
 
-type t =
-  { resources : Resources.t
-  ; players   : Uuid.t list
-  ; messages  : message list
-  (* Head of messages is oldest message *)
-  } with sexp, compare
+let shallow_compare (a : t) (b : t) =
+  let resources = Props.resources a in
+  let resources' = Props.resources b in
+  let players = Props.players a in
+  let players' = Props.players b in
+  let messages = Props.messages a in
+  let messages' = Props.messages b in
+  List.fold
+    ~init:0
+    ~f:(+)
+    [Resources.compare resources resources'
+    ;compare players players'
+    ;compare messages messages']
 
-let create ~resources ~players ~messages =
-  { resources
-  ; players
-  ; messages
-  }
-
-let from ?resources ?players ?messages tile =
-  { resources = Option.value ~default:tile.resources resources
-  ; players = Option.value ~default:tile.players players
-  ; messages = Option.value ~default:tile.messages messages
-  }
+let create ?id ~resources ~players ~messages () =
+  Entity.create ?id ()
+  |> Props.add_resources ~resources
+  |> Props.add_players ~players
+  |> Props.add_messages ~messages
 
 let empty =
-  { resources = Resources.empty
-  ; players=[]
-  ; messages=[]
-  }
-
-let with_resources t resources =
-  {t with resources}
-
-let resources tile = tile.resources
-
-let players tile = tile.players
-
-let messages tile = tile.messages
+  Entity.create ()
+  |> Props.add_resources ~resources:Resources.empty
+  |> Props.add_players ~players:[]
+  |> Props.add_messages ~messages:[]

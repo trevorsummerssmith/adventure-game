@@ -27,13 +27,25 @@ type t =
   *)
   }
 
+let get_tile dynamo posn =
+  Board.get dynamo.board posn
+  |> Entity_store.get_exn dynamo.store
+
 let create game =
+  (* Make a game board and then our tiles *)
+  let board = Game.board_dimensions game |> Board.create in
+  let store = Entity_store.create () in
+  let make_tile _x _y id =
+    Tile.create ~id ~resources:Resources.empty ~players:[] ~messages:[] ()
+    |> Entity_store.replace store id
+  in
+  ignore(Board.mapi board ~f:make_tile);
   { game
-  ; board = Game.board_dimensions game |> Board.create
+  ; board
   ; players = []
   ; artifacts = Uuid.Table.create ()
   ; buildables = Uuid.Table.create ()
-  ; store = Entity_store.create ()
+  ; store
   ; tick = 0
   }
 
@@ -71,7 +83,7 @@ let validate_player_harvest dynamo id posn kind : unit Or_error.t =
   *)
   let open Or_error.Monad_infix in
   validate_player_and_posn dynamo id posn >>= fun () ->
-  let amt = Board.get dynamo.board posn |> Tile.resources |> Resources.get ~kind in
+  let amt = get_tile dynamo posn |> Props.resources |> Resources.get ~kind in
   if amt >= 1 then
     Result.ok_unit
   else
@@ -147,51 +159,45 @@ let rec run_event_source dynamo
 and take_action dynamo op =
   (* Applies the action to the board *)
   let open Game_op in
-  let board = dynamo.board in
-  let tile = Board.get board op.posn in
+  let tile_id = Board.get dynamo.board op.posn in
   match op.code with
   | Add_player (name, id_op) ->
-    (* 1) Generate new id for player 2) add to player structure 3) add to board *)
+    (* 1) Generate new id for player
+       2) add to player structure
+       3) add to board *)
     let player = Player.create ?id:id_op
         ~resources:Resources.empty ~posn:op.posn name in
-    let id = Entity.id player in
-    Entity_store.replace dynamo.store id player;
-    let tile = Board.get board op.posn in
-    let players = id :: (Tile.players tile) in
-    Board.set board (Tile.from ~players tile) op.posn;
-    dynamo.players <- id :: dynamo.players
-  | Move_player id ->
+    let player_id = Entity.id player in
+    Entity_store.replace dynamo.store player_id player;
+    Props.add_to_players dynamo.store ~id:tile_id ~player:player_id;
+    dynamo.players <- player_id :: dynamo.players
+  | Move_player player_id ->
     (* 1. Find player's current position and remove it *)
-    let cur_posn = Props.get_posn dynamo.store id in
-    let tile = Board.get board cur_posn in
-    let players = List.filter ~f:(fun a -> a <> id) (Tile.players tile) in
-    let () = Board.set board (Tile.from ~players tile) cur_posn in
+    Props.get_posn dynamo.store player_id
+    |> Board.get dynamo.board
+    (* TODO why can't I just pipe this in there? *)
+    |> fun id -> Props.remove_from_players dynamo.store ~id ~player:player_id;
     (* 2. Update new tile *)
-    let tile = Board.get board op.posn in
-    let players = id :: (Tile.players tile) in
-    let () = Board.set board (Tile.from ~players tile) op.posn in
-    (* TODO Props.add_to_players dynamo.store tile_id id *)
+    Props.add_to_players dynamo.store ~id:tile_id ~player:player_id;
     (* 3. Update player position *)
-    Props.set_posn dynamo.store id op.posn
-  | Player_message (id, time, text) ->
+    Props.set_posn dynamo.store player_id op.posn
+  | Player_message (player_id, time, text) ->
     (* Update tile with message. Re-sort to make sure its in time order *)
-    let msg = Tile.({player=id;time;text}) in
-    let tile = Board.get board op.posn in
-    let messages = msg :: (Tile.messages tile)
-                   |> List.sort ~cmp:(fun a b -> (Time.compare a.Tile.time b.Tile.time)) in
-    let tile = Tile.from ~messages tile in
-    Board.set board tile op.posn
-  | Player_harvest (id,kind) ->
+    let msg = Message.({player_id;time;text}) in
+    let messages = msg :: (Props.get_messages dynamo.store tile_id)
+                   |> List.sort ~cmp:(fun a b -> (Time.compare a.Message.time b.Message.time)) in
+    Props.set_messages dynamo.store tile_id messages
+  | Player_harvest (player_id, kind) ->
     (* 1. Update the player 2. Update the board *)
-    let amt = (Tile.resources tile |> Resources.get ~kind) - 1 in
-    let () = assert (amt >= 0) in
-    Props.get_resources dynamo.store id
+    let amt = Props.get_resources dynamo.store tile_id
+              |> Resources.get ~kind |> pred in
+    assert (amt >= 0);
+    Props.get_resources dynamo.store player_id
     |> Resources.incr ~kind
-    |> Props.set_resources dynamo.store id;
-    let tile = Tile.resources tile
-               |> Resources.decr ~kind
-               |> Tile.with_resources tile in
-    Board.set board tile op.posn
+    |> Props.set_resources dynamo.store player_id;
+    Props.get_resources dynamo.store tile_id
+    |> Resources.decr ~kind
+    |> Props.set_resources dynamo.store tile_id;
   | Player_create_artifact (player_id, text, id_op) ->
     (* 1. Remove the cost from the player.
        2. Create artifact and add as a Buildable.
@@ -240,15 +246,13 @@ and take_action dynamo op =
         Props.add_to_artifacts dynamo.store player_id artifact.Things.id
     end
   | Add_resource kind ->
-    let tile = Tile.resources tile
-               |> Resources.incr ~kind
-               |> Tile.with_resources tile in
-    Board.set board tile op.posn
+    Props.get_resources dynamo.store tile_id
+    |> Resources.incr ~kind
+    |> Props.set_resources dynamo.store tile_id
   | Remove_resource kind ->
-    let tile = Tile.resources tile
-               |> Resources.decr ~kind
-               |> Tile.with_resources tile in
-    Board.set board tile op.posn
+    Props.get_resources dynamo.store tile_id
+    |> Resources.decr ~kind
+    |> Props.set_resources dynamo.store tile_id
 
 and step dynamo =
   if dynamo.tick >= Game.num_ops dynamo.game then
@@ -263,14 +267,12 @@ let run dynamo =
     step dynamo
   done
 
-let get_tile dynamo posn =
-  Board.get dynamo.board posn
-
 let players dynamo =
   dynamo.players
 
 let dimensions dynamo =
-  Board.dimensions dynamo.board
+  (* TODO should probably nix this *)
+  dynamo.board.Board.dimensions
 
 let game dynamo =
   dynamo.game

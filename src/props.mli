@@ -34,3 +34,17 @@ val add_to_artifacts : Entity_store.t -> id:Entity.Id.t -> artifact:Entity.Id.t 
 
 val artifacts : Entity.t -> Entity.Id.t list
 val add_artifacts : Entity.t -> artifacts:Entity.Id.t list -> Entity.t
+
+(** Players *)
+val players : Entity.t -> Entity.Id.t list
+val add_players : Entity.t -> players:Entity.Id.t list -> Entity.t
+val add_to_players
+  : Entity_store.t -> id:Entity.Id.t -> player:Entity.Id.t -> unit
+val remove_from_players
+  : Entity_store.t -> id:Entity.Id.t -> player:Entity.Id.t -> unit
+
+(** Messages *)
+val messages : Entity.t -> Message.t list
+val add_messages : Entity.t -> messages:Message.t list -> Entity.t
+val get_messages : Entity_store.t -> Entity.Id.t -> Message.t list
+val set_messages : Entity_store.t -> Entity.Id.t -> messages:Message.t list -> unit

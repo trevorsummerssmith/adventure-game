@@ -10,7 +10,7 @@ let empty_apply _ =
   ae_tile Tile.empty (Dynamo.get_tile dynamo (0,0))
 
 let add_one_player _ =
-  (* Insure
+  (* Ensure
      1) dynamo player structure is correct
      2) player entity is correct
      3) board is correct
@@ -22,7 +22,7 @@ let add_one_player _ =
   let id = List.hd_exn players in
   assert_equal "Purple Player" (Props.get_name (Dynamo.store dynamo) id);
   assert_equal (2,2) (Props.get_posn (Dynamo.store dynamo) id);
-  ae_tile (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (2,2))
+  ae_tile (make_tile ~players:[id] []) (Dynamo.get_tile dynamo (2,2))
 
 let add_three_players_two_to_same_tile _ =
   (* lets make sure that adding a few players keeps the right state *)
@@ -57,7 +57,7 @@ let move_one_player _ =
   let dynamo = run_with_ops ops in
   assert_equal (3,3) (Props.get_posn (Dynamo.store dynamo) id);
   ae_tile Tile.empty (Dynamo.get_tile dynamo (2,2));
-  ae_tile (Tile.from ~players:[id] Tile.empty) (Dynamo.get_tile dynamo (3,3))
+  ae_tile (make_tile ~players:[id] []) (Dynamo.get_tile dynamo (3,3))
 
 let run_player_message _ =
   let open Game_op in
@@ -71,9 +71,12 @@ let run_player_message _ =
   let _ = Dynamo.add_op dynamo (create (Player_message (id, time, text)) (2,3)) in
   let () = Dynamo.step dynamo  in
   let tile = Dynamo.get_tile dynamo (2,3) in
-  let correct_tile = Tile.(from ~players:[id]
-                             ~messages:[{player=id;time;text}]
-                             empty) in
+  let correct_tile = Tile.create
+      ~players:[id]
+      ~messages:[Message.({player_id=id;time;text})]
+      ~resources:Resources.empty
+      ()
+  in
   ae_tile correct_tile tile
 
 let run_player_message_good _ =
@@ -86,9 +89,12 @@ let run_player_message_good _ =
             ] in
   let dynamo = run_with_ops ops in
   let tile = Dynamo.get_tile dynamo (2,3) in
-  let correct_tile = Tile.(from ~players:[id]
-                             ~messages:[{player=id;time;text}]
-                             empty) in
+  let correct_tile = Tile.create
+      ~players:[id]
+      ~messages:[Message.({player_id=id;time;text})]
+      ~resources:Resources.empty
+      ()
+  in
   ae_tile correct_tile tile
 
 let add_player_message_valid _ =

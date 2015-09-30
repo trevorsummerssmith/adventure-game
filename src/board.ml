@@ -1,12 +1,14 @@
 open Core.Std
 
 type t =
-  { board : Tile.t array array
+  { board : Entity.Id.t array array
   ; dimensions : Posn.t
   } with sexp
 
 let create (width, height) =
-  let board = Array.make_matrix ~dimx:width ~dimy:height Tile.empty in
+  let board = Array.init width ~f:(fun _x ->
+      Array.init height ~f:(fun _y -> Uuid.create ()))
+  in
   {board; dimensions=(width,height)}
 
 let assert_bounds board (x, y) : unit =
@@ -27,8 +29,8 @@ let set board tile (x, y) =
 let dimensions board =
   board.dimensions
 
-let mapi board ~(f : int -> int -> Tile.t -> 'a) : 'a array array =
+let mapi board ~(f : int -> int -> Entity.Id.t -> 'a) : 'a array array =
   Array.mapi ~f:(fun (x:int) arr ->
-      Array.mapi ~f:(fun (y:int) (tile:Tile.t) -> f x y tile) arr
+      Array.mapi ~f:(fun (y:int) (tile:Entity.Id.t) -> f x y tile) arr
     )
     board.board

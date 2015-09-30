@@ -36,21 +36,21 @@ let serve_file docroot uri =
 
 let make_tile_payload dynamo posn =
   let tile = Dynamo.get_tile dynamo posn in
-  let player_names = Tile.players tile
+  let player_names = Props.players tile
                      |> List.map ~f:(Props.get_name (Dynamo.store dynamo))
                      |> String.concat ~sep:"," in
-  let messages = Tile.messages tile
+  let messages = Props.messages tile
                  |> List.map ~f:(fun m ->
-                     let player_name = m.Tile.player
+                     let player_name = m.Message.player_id
                                        |> Props.get_name (Dynamo.store dynamo)
                      in
-                     let time = Time.to_string m.Tile.time in
-                     let text = m.Tile.text in
+                     let time = Time.to_string m.Message.time in
+                     let text = m.Message.text in
                      Payloads_t.({ player_name
                                  ; time
                                  ; text })
                    ) in
-  let resources kind = Tile.resources tile |> Resources.get ~kind in
+  let resources kind = Props.resources tile |> Resources.get ~kind in
   let desc = Printf.sprintf "A small field with %d trees and %d rocks and %s players"
       (resources Resources.Wood)
       (resources Resources.Rock)
@@ -213,17 +213,21 @@ let handler dynamo body sock req =
       let player = Option.map ~f:(fun id_str ->
           Uuid.of_string id_str
           |> Props.get_posn (Dynamo.store dynamo)) param in
-      let to_map_tile tile : Payloads_t.map_tile =
-        let players = Tile.players tile |> List.is_empty |> not in
-        let resources = Tile.resources tile |> Resources.get in
+      let to_map_tile tile_id : Payloads_t.map_tile =
+        let tile = Entity_store.get_exn (Dynamo.store dynamo) tile_id in
+        let players = Props.players tile |> List.is_empty |> not in
+        let resources = Props.resources tile |> Resources.get in
         let wood = resources ~kind:Resources.Wood |> (<) 0 in
         let rock = resources ~kind:Resources.Rock |> (<) 0 in
-        let messages = Tile.messages tile |> List.is_empty |> not in
+        let messages = Props.messages tile |> List.is_empty |> not in
         Payloads_t.({p=players;w=wood;r=rock;m=messages})
       in
-      let tiles = Board.mapi ~f:(fun _x _y t -> to_map_tile t) (Dynamo.board dynamo) in
+      let tiles = Board.mapi ~f:(fun _ _ tid -> to_map_tile tid)
+          (Dynamo.board dynamo) in
       let tiles = Array.to_list tiles |> List.map ~f:Array.to_list in
-      let body = Payloads_t.({tiles;player}) |> Payloads_j.string_of_map_payload |> CA.Body.of_string in
+      let body = Payloads_t.({tiles;player})
+                 |> Payloads_j.string_of_map_payload
+                 |> CA.Body.of_string in
       respond ~body `OK
     )
   | _ -> respond `Bad_request
