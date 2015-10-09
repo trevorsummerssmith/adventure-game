@@ -14,9 +14,6 @@ type t =
   (* Ids of the players in the game.
      Currently this is only used to get the list of players at the beginning
      of the game. *)
-  ; artifacts : (Uuid.t, Things.artifact) Hashtbl.t
-  (* Mapping from artifact id to artifact *)
-  ; buildables : (Uuid.t, Things.Buildable.t) Hashtbl.t
   (* Mapping from artifact id to buildable *)
   ; store : Entity_store.t
   (* State to keep track of most everything in the game. *)
@@ -37,14 +34,12 @@ let create game =
   let store = Entity_store.create () in
   let make_tile _x _y id =
     Tile.create ~id ~resources:Resources.empty ~players:[] ~messages:[] ()
-    |> Entity_store.replace store id
+    |> Entity_store.add_exn store id
   in
   ignore(Board.mapi board ~f:make_tile);
   { game
   ; board
   ; players = []
-  ; artifacts = Uuid.Table.create ()
-  ; buildables = Uuid.Table.create ()
   ; store
   ; tick = 0
   }
@@ -117,7 +112,7 @@ let add_op dynamo op =
       validate_player_message dynamo (id, time, text) op.posn
     | Player_harvest (id,kind) ->
       validate_player_harvest dynamo id op.posn kind
-    | Player_create_artifact (player_id, text, artifact_id_op) ->
+    | Player_create_artifact (player_id, text, _, _) ->
       validate_player_create_artifact dynamo player_id text
     | _ -> Ok ()
   in
@@ -168,7 +163,7 @@ and take_action dynamo op =
     let player = Player.create ?id:id_op
         ~resources:Resources.empty ~posn:op.posn name in
     let player_id = Entity.id player in
-    Entity_store.replace dynamo.store player_id player;
+    Entity_store.add_exn dynamo.store player_id player;
     Props.add_to_players dynamo.store ~id:tile_id ~player:player_id;
     dynamo.players <- player_id :: dynamo.players
   | Move_player player_id ->
@@ -198,27 +193,35 @@ and take_action dynamo op =
     Props.get_resources dynamo.store tile_id
     |> Resources.decr ~kind
     |> Props.set_resources dynamo.store tile_id;
-  | Player_create_artifact (player_id, text, id_op) ->
+  | Player_create_artifact (player_id, text, buildable_id_op, artifact_id_op) ->
     (* 1. Remove the cost from the player.
-       2. Create artifact and add as a Buildable.
+       2. Create artifact and buildable.
        3. Add buildable to player.
        4. Create an event source to build the artifact
     *)
-    let update_player player_id artifact_id =
+    let update_player player_id buildable_id =
       let resources = Entity_store.get_exn dynamo.store player_id
                       |> Props.resources in
       assert (Resources.(get resources ~kind:Wood) >= 1);
       assert (Resources.(get resources ~kind:Rock) >= 1);
       Props.set_resources dynamo.store player_id resources;
-      Props.add_to_buildables dynamo.store player_id artifact_id;
+      Props.add_to_buildables dynamo.store player_id buildable_id;
     in
-    let id = Option.value ~default:(Uuid.create ()) id_op in
-    update_player player_id id;
-    let artifact = Things.({id; player_id; text}) in
-    let buildable = Things.Buildable.({entity=artifact; percent_complete=(Building 0);}) in
-    Hashtbl.add_exn dynamo.buildables ~key:id ~data:buildable;
-    run_event_source dynamo ~f:(fun w_ops r_resp -> Event_sources.update_buildable id w_ops r_resp)
-  | Buildable_update (id, status) ->
+    let buildable_id = Option.value ~default:(Uuid.create ()) buildable_id_op in
+    update_player player_id buildable_id;
+    (* Artifact is created and added to the entity store *)
+    let artifact_id = Option.value ~default:(Uuid.create ()) artifact_id_op in
+    let artifact = Things.Artifact.create ~id:artifact_id ~player_id ~text () in
+    Entity_store.add_exn dynamo.store artifact_id artifact;
+    let buildable = Things.Buildable.create
+        ~id:buildable_id
+        ~kind:(Atoms.Artifact artifact_id)
+        ~percent_complete:(Atoms.Building 0)
+        () in
+    Entity_store.add_exn dynamo.store (Entity.id buildable) buildable;
+    run_event_source dynamo ~f:(fun w_ops r_resp ->
+        Event_sources.update_buildable buildable_id w_ops r_resp)
+  | Buildable_update (buildable_id, status) ->
     (* If status update is Building, update the Buildable with that status,
        If Complete
          1. Remove the Buildable from the game's buildables
@@ -229,21 +232,23 @@ and take_action dynamo op =
     begin
       let open Things.Buildable in
       Log.Global.info "Buildable_update %s %s"
-        (Sexp.to_string (Uuid.sexp_of_t id))
-        (Sexp.to_string (Things.Buildable.sexp_of_status status));
+        (Sexp.to_string (Uuid.sexp_of_t buildable_id))
+        (Sexp.to_string (Atoms.sexp_of_percent_complete status));
       match status with
-      | Building percent ->
-        let buildable = Hashtbl.find_exn dynamo.buildables id in
-        let buildable = {buildable with percent_complete = status} in
-        Hashtbl.replace dynamo.buildables ~key:id ~data:buildable
-      | Complete ->
-        let artifact = (Hashtbl.find_exn dynamo.buildables id).entity in
-        Hashtbl.remove dynamo.buildables id;
-        Hashtbl.add_exn dynamo.artifacts ~key:id ~data:artifact;
-        (* Remove from the user *)
-        let player_id = artifact.Things.player_id in
-        Props.remove_from_buildables dynamo.store player_id id;
-        Props.add_to_artifacts dynamo.store player_id artifact.Things.id
+      | Atoms.Building percent as percent_complete ->
+        Props.set_percent_complete dynamo.store
+          ~id:buildable_id ~percent_complete
+      | Atoms.Complete ->
+        (* Add Artifact to player *)
+        let artifact_id =
+          match Props.get_kind dynamo.store buildable_id with
+          | Atoms.Artifact id -> id
+        in
+        let player_id = Props.get_owner dynamo.store artifact_id in
+        Props.add_to_artifacts dynamo.store player_id artifact_id;
+        (* Remove buildable from the user and delete buildable *)
+        Props.remove_from_buildables dynamo.store player_id buildable_id;
+        Entity_store.remove dynamo.store buildable_id
     end
   | Add_resource kind ->
     Props.get_resources dynamo.store tile_id
@@ -279,9 +284,5 @@ let game dynamo =
 
 let board dynamo =
   dynamo.board
-
-let artifacts {artifacts; _} = artifacts
-
-let buildables {buildables; _} = buildables
 
 let store {store; _} = store

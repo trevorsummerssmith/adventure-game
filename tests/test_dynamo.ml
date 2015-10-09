@@ -228,6 +228,7 @@ let create_artifact_success _ =
      Not sure how to dependency inject all of that without it being really a pain.
      Instead, we test that functionality separately
   *)
+  let buildable_id = Uuid.create () in
   let artifact_id = Uuid.create () in
   let player_id = Uuid.create () in
   let text = "Awesome Artifact" in
@@ -238,21 +239,27 @@ let create_artifact_success _ =
                      ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+  let op = Game_op.(create (Player_create_artifact (player_id, text, Some buildable_id, Some artifact_id))
                       (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> failwith (Error.to_string_hum e)
   | Result.Ok () ->
     Dynamo.step dynamo;
-    let buildables = Dynamo.buildables dynamo
-                     |> Hashtbl.to_alist in
-    let entity = Things.({id=artifact_id; player_id; text}) in
-    let answer = Things.Buildable.({percent_complete=Building 0; entity}) in
-    assert_equal buildables [artifact_id, answer]
+    let store = Dynamo.store dynamo in
+    let buildable =
+      Props.get_buildables store player_id
+      |> Fn.flip List.nth_exn 0
+      |> Entity_store.get_exn store
+    in
+    let answer = Things.Buildable.create
+        ~percent_complete:(Atoms.Building 0)
+        ~kind:(Atoms.Artifact artifact_id)
+        ()
+    in
+    ae_buildable answer buildable
 
 let create_artifact_validation_failure_wood _ =
   (* Player doesn't have enough wood *)
-  let artifact_id = Uuid.create () in
   let player_id = Uuid.create () in
   let text = "Awesome Artifact" in
   let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
@@ -261,7 +268,7 @@ let create_artifact_validation_failure_wood _ =
                      ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+  let op = Game_op.(create (Player_create_artifact (player_id, text, None, None))
                       (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> ()
@@ -269,7 +276,6 @@ let create_artifact_validation_failure_wood _ =
 
 let create_artifact_validation_failure_rock _ =
   (* Player doesn't have enough rock *)
-  let artifact_id = Uuid.create () in
   let player_id = Uuid.create () in
   let text = "Awesome Artifact" in
   let ops = Game_op.([ create (Add_resource Resources.Rock) (2,3)
@@ -278,13 +284,14 @@ let create_artifact_validation_failure_rock _ =
                      ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Player_create_artifact (player_id, text, Some artifact_id))
+  let op = Game_op.(create (Player_create_artifact (player_id, text, None, None))
                       (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> ()
   | Result.Ok () -> failwith "Should have a validation error"
 
 let buildable_update_percent _ =
+  let buildable_id = Uuid.create () in
   let artifact_id = Uuid.create () in
   let player_id = Uuid.create () in
   let text = "Awesome Artifact" in
@@ -294,23 +301,29 @@ let buildable_update_percent _ =
                      ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
                      ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
                      ; create (Player_create_artifact
-                                 (player_id, text, Some artifact_id)) (2,3)
+                                 (player_id, text, Some buildable_id, Some artifact_id)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Buildable_update (artifact_id, Things.Buildable.Building 35)) (2,3)) in
+  let code = Game_op.Buildable_update (buildable_id, Atoms.Building 35) in
+  let op = Game_op.create code (2,3) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> failwith "Error"
   | Result.Ok () ->
     Dynamo.step dynamo;
+    let store = Dynamo.store dynamo in
     (* Assert player and game state are updated *)
-    let player = Entity_store.get_exn (Dynamo.store dynamo) player_id in
-    let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) artifact_id in
-    let artifact = Things.({id=artifact_id; player_id; text}) in
-    assert_equal (Things.Buildable.({percent_complete=(Building 35); entity=artifact})) buildable;
-    ae_uuid_list [artifact_id] (Props.buildables player);
-    ae_uuid_list [] (Props.artifacts player)
+    let buildable = Props.get_buildables store player_id
+                    |> Fn.flip List.nth_exn 0
+                    |> Entity_store.get_exn store in
+    let answer_buildable = Things.Buildable.create
+        ~percent_complete:(Atoms.Building 35)
+        ~kind:(Atoms.Artifact artifact_id)
+        () in
+    ae_buildable answer_buildable buildable;
+    ae_uuid_list [] (Props.get_artifacts store player_id)
 
 let buildable_update_complete _ =
+  let buildable_id = Uuid.create () in
   let artifact_id = Uuid.create () in
   let player_id = Uuid.create () in
   let text = "Awesome Artifact" in
@@ -320,18 +333,16 @@ let buildable_update_complete _ =
                      ; create (Player_harvest (player_id, Resources.Rock)) (2,3)
                      ; create (Player_harvest (player_id, Resources.Wood)) (2,3)
                      ; create (Player_create_artifact
-                                 (player_id, text, Some artifact_id)) (2,3)
+                                 (player_id, text, Some buildable_id, Some artifact_id)) (2,3)
                      ]) in
   let dynamo = run_with_ops ops in
-  let op = Game_op.(create (Buildable_update (artifact_id, Things.Buildable.Complete)) (2,3)) in
+  let op = Game_op.(create (Buildable_update (buildable_id, Atoms.Complete)) (2,3)) in
   match Dynamo.add_op dynamo op with
   | Result.Error e -> failwith "Error"
   | Result.Ok () ->
     Dynamo.step dynamo;
     (* Assert player and game state are updated *)
     let player = Entity_store.get_exn (Dynamo.store dynamo) player_id in
-    let artifact = Things.({id=artifact_id; player_id; text}) in
-    assert_equal artifact (Hashtbl.find_exn (Dynamo.artifacts dynamo) artifact_id);
     ae_uuid_list [] (Props.buildables player);
     ae_uuid_list [artifact_id] (Props.artifacts player)
 

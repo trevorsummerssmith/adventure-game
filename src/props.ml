@@ -13,6 +13,11 @@ let buildables_prop = create_prop "buildables" <:sexp_of<Uuid.t list>>
 let artifacts_prop = create_prop "artifacts" <:sexp_of<Uuid.t list>>
 let players_prop = create_prop "players" <:sexp_of<Uuid.t list>>
 let messages_prop = create_prop "messages" <:sexp_of<Message.t list>>
+let owner_prop = create_prop "owner" Entity.Id.sexp_of_t
+let text_prop = create_prop "text" String.sexp_of_t
+let percent_complete_prop =
+  create_prop "percent-complete" Atoms.sexp_of_percent_complete
+let kind_prop = create_prop "kind" Atoms.sexp_of_kind
 
 let get_posn es id =
   E.get_prop_exn es id posn_prop
@@ -106,3 +111,51 @@ let get_messages es id =
 
 let set_messages es id ~messages =
   E.set_prop_exn es id messages_prop messages
+
+let owner entity =
+  U.find_exn entity owner_prop
+
+let add_owner entity ~owner =
+  U.add_exn entity owner_prop owner
+
+let get_owner es id =
+  E.get_prop_exn es id owner_prop
+
+let set_owner es ~id ~owner =
+  E.set_prop_exn es id owner_prop owner
+
+let text entity =
+  U.find_exn entity text_prop
+
+let add_text entity ~text =
+  U.add_exn entity text_prop text
+
+let get_text es id =
+  E.get_prop_exn es id text_prop
+
+let set_text es id text =
+  E.set_prop_exn es id text_prop text
+
+let percent_complete entity =
+  U.find_exn entity percent_complete_prop
+
+let add_percent_complete entity ~percent_complete =
+  U.add_exn entity percent_complete_prop percent_complete
+
+let get_percent_complete es id =
+  E.get_prop_exn es id percent_complete_prop
+
+let set_percent_complete es ~id ~percent_complete =
+  E.set_prop_exn es id percent_complete_prop percent_complete
+
+let kind entity =
+  U.find_exn entity kind_prop
+
+let add_kind entity ~kind =
+  U.add_exn entity kind_prop kind
+
+let get_kind es id =
+  E.get_prop_exn es id kind_prop
+
+let set_kind es ~id ~kind =
+  E.set_prop_exn es id kind_prop kind

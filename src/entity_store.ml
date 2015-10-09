@@ -11,11 +11,10 @@ let get tbl id =
 let get_exn tbl id =
   Hashtbl.find_exn tbl id
 
-let add_exn tbl id =
-  Hashtbl.add_exn tbl ~key:id ~data:Univ_map.empty
+let add_exn tbl id entity =
+  Hashtbl.add_exn tbl ~key:id ~data:entity
 
-let replace tbl id entity =
-  Hashtbl.replace tbl ~key:id ~data:entity
+let remove tbl id = Hashtbl.remove tbl id
 
 module Prop = Univ_map.Key
 

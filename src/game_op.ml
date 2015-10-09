@@ -24,10 +24,13 @@ type code =
   (* Player id, time message occurred in utc, message *)
   | Player_harvest of Uuid.t * Resources.kind
   (* Player id, kind of resource to harvest *)
-  | Player_create_artifact of Uuid.t * string * Uuid.t option
-  (* Player id, artifact text, optional id of the artifact *)
-  | Buildable_update of Uuid.t * Things.Buildable.status
-  (* Entity uuid, status of the entity update *)
+  | Player_create_artifact of Uuid.t * string * Uuid.t option * Uuid.t option
+  (* Player id
+     artifact text
+     optional id of the buildable
+     optional id of the artifact *)
+  | Buildable_update of Uuid.t * Atoms.percent_complete
+  (* Buildable id, status of the entity update *)
   | Add_resource of Resources.kind
   | Remove_resource of Resources.kind with sexp, compare
 

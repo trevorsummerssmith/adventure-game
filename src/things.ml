@@ -1,19 +1,20 @@
 open Core.Std
 
-type artifact =
-  { id : Uuid.t
-  ; player_id : Uuid.t
-  ; text      : string
-  } with sexp, compare
+module Artifact = struct
+  type t = Entity.t with sexp_of
+
+  let create ?id ~player_id ~text () =
+    Entity.create ?id ()
+    |> Props.add_owner ~owner:player_id
+    |> Props.add_text ~text
+end
 
 module Buildable = struct
-  type status =
-    | Building of int
-    (** 0...99 inclusive. *)
-    | Complete with sexp, compare
 
-  type t =
-    { entity : artifact
-    ; percent_complete : status
-    } with sexp, compare
+  type t = Entity.t with sexp_of
+
+  let create ?id ~percent_complete ~kind () =
+    Entity.create ?id ()
+    |> Props.add_percent_complete ~percent_complete
+    |> Props.add_kind ~kind
 end

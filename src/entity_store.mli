@@ -10,10 +10,9 @@ val get : t -> Entity.Id.t -> Entity.t Option.t
 
 val get_exn : t -> Entity.Id.t -> Entity.t
 
-val add_exn : t -> Entity.Id.t -> unit
-(* TODO probably nix this? *)
+val add_exn : t -> Entity.Id.t -> Entity.t -> unit
 
-val replace : t -> Entity.Id.t -> Entity.t -> unit
+val remove : t -> Entity.Id.t -> unit
 
 (** Properties *)
 

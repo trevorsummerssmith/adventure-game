@@ -41,8 +41,4 @@ val game : t -> Game.t
 
 val board : t -> Board.t
 
-val artifacts : t -> (Uuid.t, Things.artifact) Hashtbl.t
-
-val buildables : t -> (Uuid.t, Things.Buildable.t) Hashtbl.t
-
 val store : t -> Entity_store.t

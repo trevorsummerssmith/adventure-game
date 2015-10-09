@@ -65,18 +65,16 @@ let respond_with_tile_description_and_player dynamo id posn =
   let rock = Resources.get resources ~kind:Resources.Rock in
   (* For now all buildables are artifacts so do a simple serialization *)
   let buildable_to_json id =
-    let buildable = Hashtbl.find_exn (Dynamo.buildables dynamo) id in
-    let percent = match buildable.Things.Buildable.percent_complete with
-      | Things.Buildable.Building i -> i
-      | Things.Buildable.Complete -> 100
+    let percent = match Props.get_percent_complete (Dynamo.store dynamo) id with
+      | Atoms.Building i -> i
+      | Atoms.Complete -> 100
     in
     Payloads_t.({percent; kind="Artifact"})
   in
   let buildables = Props.buildables player
                    |> List.map ~f:buildable_to_json in
   let artifacts_to_json id =
-    let artifact = Hashtbl.find_exn (Dynamo.artifacts dynamo) id in
-    let text = artifact.Things.text in
+    let text = Props.get_text (Dynamo.store dynamo) id in
     Payloads_t.({text})
   in
   let artifacts = Props.artifacts player
@@ -172,7 +170,7 @@ let handle_player_build_artifact dynamo req body =
   | Some text ->
     let f player posn =
       let id = Entity.id player in
-      Game_op.(create (Player_create_artifact (id, text, None)) posn)
+      Game_op.(create (Player_create_artifact (id, text, None, None)) posn)
     in
     handle_player_action ~f dynamo req body
 

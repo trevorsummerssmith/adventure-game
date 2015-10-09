@@ -48,3 +48,41 @@ val messages : Entity.t -> Message.t list
 val add_messages : Entity.t -> messages:Message.t list -> Entity.t
 val get_messages : Entity_store.t -> Entity.Id.t -> Message.t list
 val set_messages : Entity_store.t -> Entity.Id.t -> messages:Message.t list -> unit
+
+(** Owner (player id) *)
+val owner : Entity.t -> Entity.Id.t
+val add_owner : Entity.t -> owner:Entity.Id.t -> Entity.t
+val get_owner : Entity_store.t -> Entity.Id.t -> Entity.Id.t
+val set_owner : Entity_store.t -> id:Entity.Id.t -> owner:Entity.Id.t -> unit
+
+(** Text (this can be used for variuos purposes) *)
+val text : Entity.t -> string
+val add_text : Entity.t -> text:string -> Entity.t
+val get_text : Entity_store.t -> Entity.Id.t -> string
+val set_text : Entity_store.t -> Entity.Id.t -> string -> unit
+
+(** Percent Complete (for building something) *)
+val percent_complete : Entity.t -> Atoms.percent_complete
+val add_percent_complete
+  : Entity.t
+  -> percent_complete:Atoms.percent_complete
+  -> Entity.t
+val get_percent_complete
+  : Entity_store.t
+  -> Entity.Id.t
+  -> Atoms.percent_complete
+val set_percent_complete
+  : Entity_store.t
+  -> id:Entity.Id.t
+  -> percent_complete:Atoms.percent_complete
+  -> unit
+
+(** Kind (used for building something) *)
+val kind : Entity.t -> Atoms.kind
+val add_kind : Entity.t -> kind:Atoms.kind -> Entity.t
+val get_kind : Entity_store.t -> Entity.Id.t -> Atoms.kind
+val set_kind
+  : Entity_store.t
+  -> id:Entity.Id.t
+  -> kind:Atoms.kind
+  -> unit

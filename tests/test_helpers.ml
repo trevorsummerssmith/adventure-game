@@ -34,6 +34,16 @@ let ae_game_op op op' =
       && ((compare_code a.code b.code) = 0))
     Game_op.sexp_of_t op op'
 
+let ae_buildable b b' = (* TODO tmp until generic entity compare *)
+  let percent_complete = Props.percent_complete b in
+  let percent_complete' = Props.percent_complete b' in
+  let kind = Props.kind b in
+  let kind' = Props.kind b' in
+  List.fold ~init:0 ~f:(+)
+    [ compare percent_complete percent_complete'
+    ; compare kind kind']
+  |> assert_equal 0
+
 let assert_from_pipe pipe ae answer =
   Pipe.read pipe >>| (function
   | `Eof -> failwith "assert_from_pipe: expected `Ok got `Eof"
