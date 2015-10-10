@@ -31,7 +31,7 @@ let doit seed num_players file () =
   (* Generating random trees and rocks *)
   let width, height = 100, 100 in
   let random_posn = random_posn width height in
-  let () = Random.init seed in
+  Random.init seed;
   (* We'll do something basic for now. Generate 20 trees
      and 20 rocks *)
   let rec make_stuff i aux =

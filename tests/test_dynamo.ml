@@ -6,7 +6,7 @@ open Test_helpers
 let empty_apply _ =
   let game = Game.create [] (1,1) in
   let dynamo = Dynamo.create game in
-  let () = Dynamo.step dynamo in
+  Dynamo.step dynamo;
   ae_tile Tile.empty (Dynamo.get_tile dynamo (0,0))
 
 let add_one_player _ =
@@ -69,7 +69,7 @@ let run_player_message _ =
             ] in
   let dynamo = run_with_ops ops in
   let _ = Dynamo.add_op dynamo (create (Player_message (id, time, text)) (2,3)) in
-  let () = Dynamo.step dynamo  in
+  Dynamo.step dynamo;
   let tile = Dynamo.get_tile dynamo (2,3) in
   let correct_tile = Tile.create
       ~players:[id]

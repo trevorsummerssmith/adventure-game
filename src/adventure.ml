@@ -258,8 +258,8 @@ let determine_mode key_file cert_file =
   let open Conduit_async in
   match (key_file, cert_file) with
   | (Some k, Some c) ->
-    let () = file_must_exist ~msg:"Error key file not found %s" k in
-    let () = file_must_exist ~msg:"Error cert file not found %s" c in
+    file_must_exist ~msg:"Error key file not found %s" k;
+    file_must_exist ~msg:"Error cert file not found %s" c;
     `OpenSSL (`Crt_file_path c, `Key_file_path k)
   | (None, None) -> `TCP
   | (Some _, None)
@@ -270,7 +270,7 @@ let exception_handler _address exn =
   Log.Global.error "Got an exception: %s" (Exn.to_string_mach exn)
 
 let read_game_file filename =
-  let () = file_must_exist ~msg:"Game file not found %s" filename in
+  file_must_exist ~msg:"Game file not found %s" filename;
   In_channel.with_file filename ~f:(fun ic ->
       let s = In_channel.input_all ic in
       Sexp.of_string s |> Game.t_of_sexp)
@@ -298,7 +298,7 @@ let start_server game_filename no_exit_save port key_file cert_file () =
   let game = read_game_file game_filename in
   info "initializing game with %d actions..." (Game.num_ops game);
   let dynamo = Dynamo.create game in
-  let () = Dynamo.run dynamo in
+  Dynamo.run dynamo;
   if not no_exit_save then
     install_signal_handlers dynamo;
   info "done with initialization!";

@@ -264,7 +264,7 @@ and step dynamo =
     ()
   else
     let op = Game.nth_op dynamo.game dynamo.tick in
-    let () = take_action dynamo op in
+    take_action dynamo op;
     dynamo.tick <- (dynamo.tick + 1)
 
 let run dynamo =
