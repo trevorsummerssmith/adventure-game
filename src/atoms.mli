@@ -11,3 +11,7 @@ type percent_complete =
 type kind =
   (** Bad name. Currently only used for things being built. *)
   | Artifact of Entity.Id.t with sexp_of
+
+type extant =
+  (** An entity that can be on a Tile *)
+  | Temple of Entity.Id.t with sexp_of

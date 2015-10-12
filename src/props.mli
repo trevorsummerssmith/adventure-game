@@ -86,3 +86,17 @@ val set_kind
   -> id:Entity.Id.t
   -> kind:Atoms.kind
   -> unit
+
+(** locked -- used for a temple *)
+val locked : Entity.t -> bool
+val add_locked : Entity.t -> locked:bool -> Entity.t
+val get_locked : Entity_store.t -> Entity.Id.t -> bool
+val set_locked : Entity_store.t -> id:Entity.Id.t -> locked:bool -> unit
+
+(** Entities that can be on a Tile. *)
+val extants : Entity.t -> Atoms.extant list
+val add_extants : Entity.t -> extants:Atoms.extant list -> Entity.t
+val add_to_extants
+  : Entity_store.t -> id:Entity.Id.t -> extant:Atoms.extant -> unit
+val remove_from_extants
+  : Entity_store.t -> id:Entity.Id.t -> extant:Atoms.extant -> unit

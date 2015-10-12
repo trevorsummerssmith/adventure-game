@@ -18,3 +18,16 @@ module Buildable = struct
     |> Props.add_percent_complete ~percent_complete
     |> Props.add_kind ~kind
 end
+
+module Temple = struct
+
+  type t = Entity.t with sexp_of
+
+  let create ?id ~name ~text ~posn ~locked () =
+    Entity.create ?id ()
+    |> Props.add_name ~name
+    |> Props.add_text ~text
+    |> Props.add_posn ~posn
+    |> Props.add_locked ~locked
+
+end

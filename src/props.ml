@@ -18,6 +18,8 @@ let text_prop = create_prop "text" String.sexp_of_t
 let percent_complete_prop =
   create_prop "percent-complete" Atoms.sexp_of_percent_complete
 let kind_prop = create_prop "kind" Atoms.sexp_of_kind
+let locked_prop = create_prop "locked" Bool.sexp_of_t
+let extants_prop = create_prop "extants" <:sexp_of<Atoms.extant list>>
 
 let get_posn es id =
   E.get_prop_exn es id posn_prop
@@ -159,3 +161,27 @@ let get_kind es id =
 
 let set_kind es ~id ~kind =
   E.set_prop_exn es id kind_prop kind
+
+let locked entity =
+  U.find_exn entity locked_prop
+
+let add_locked entity ~locked =
+  U.add_exn entity locked_prop locked
+
+let get_locked es id =
+  E.get_prop_exn es id locked_prop
+
+let set_locked es ~id ~locked =
+  E.set_prop_exn es id locked_prop locked
+
+let extants entity =
+  U.find_exn entity extants_prop
+
+let add_extants entity ~extants =
+  U.add_exn entity extants_prop extants
+
+let add_to_extants es ~id ~extant =
+  E.add_to_prop_exn es id extants_prop extant
+
+let remove_from_extants es ~id ~extant =
+  E.remove_from_prop_exn es id extants_prop extant

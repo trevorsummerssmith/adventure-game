@@ -33,7 +33,11 @@ let create game =
   let board = Game.board_dimensions game |> Board.create in
   let store = Entity_store.create () in
   let make_tile _x _y id =
-    Tile.create ~id ~resources:Resources.empty ~players:[] ~messages:[] ()
+    Tile.create ~id
+      ~resources:Resources.empty
+      ~players:[]
+      ~messages:[]
+      ~extants:[] ()
     |> Entity_store.add_exn store id
   in
   ignore(Board.mapi board ~f:make_tile);
@@ -250,6 +254,13 @@ and take_action dynamo op =
         Props.remove_from_buildables dynamo.store player_id buildable_id;
         Entity_store.remove dynamo.store buildable_id
     end
+  | Add_temple (name, text) ->
+    (* Create a temple and add to the tile *)
+    let id = Entity.Id.create () in
+    let posn = op.posn in
+    let temple = Things.Temple.create ~id ~name ~text ~posn ~locked:true () in
+    Entity_store.add_exn dynamo.store id temple;
+    Props.add_to_extants dynamo.store ~id:tile_id ~extant:(Atoms.Temple id)
   | Add_resource kind ->
     Props.get_resources dynamo.store tile_id
     |> Resources.incr ~kind

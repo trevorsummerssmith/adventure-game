@@ -31,6 +31,8 @@ type code =
      optional id of the artifact *)
   | Buildable_update of Uuid.t * Atoms.percent_complete
   (* Buildable id, status of the entity update *)
+  | Add_temple of string * string
+  (* Adds a temple to the board. Temple name, Temple text *)
   | Add_resource of Resources.kind
   | Remove_resource of Resources.kind with sexp, compare
 

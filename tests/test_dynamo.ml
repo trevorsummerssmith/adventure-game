@@ -75,6 +75,7 @@ let run_player_message _ =
       ~players:[id]
       ~messages:[Message.({player_id=id;time;text})]
       ~resources:Resources.empty
+      ~extants:[]
       ()
   in
   ae_tile correct_tile tile
@@ -93,6 +94,7 @@ let run_player_message_good _ =
       ~players:[id]
       ~messages:[Message.({player_id=id;time;text})]
       ~resources:Resources.empty
+      ~extants:[]
       ()
   in
   ae_tile correct_tile tile

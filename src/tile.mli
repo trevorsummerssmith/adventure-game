@@ -7,6 +7,7 @@ val create
   -> resources:Resources.t
   -> players:Entity.Id.t list
   -> messages:Message.t list
+  -> extants:Atoms.extant list
   -> unit
   -> t
 

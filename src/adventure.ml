@@ -50,11 +50,18 @@ let make_tile_payload dynamo posn =
                                  ; time
                                  ; text })
                    ) in
+  let make_temple_desc temple_id =
+    sprintf "A giant temple rises before you. '%s' is carved in stone above the entrance."
+      (Props.get_name (Dynamo.store dynamo) temple_id) in
+  let temple_desc = Props.extants tile
+                    |> List.filter_map ~f:(function
+                        | Atoms.Temple x -> Some (make_temple_desc x)) in
   let resources kind = Props.resources tile |> Resources.get ~kind in
-  let desc = Printf.sprintf "A small field with %d trees and %d rocks and %s players"
+  let desc = Printf.sprintf "A small field with %d trees and %d rocks and %s players."
       (resources Resources.Wood)
       (resources Resources.Rock)
       player_names in
+  let desc = String.concat ~sep:" " (desc :: temple_desc) in
   Payloads_t.({desc; messages})
 
 let respond_with_tile_description_and_player dynamo id posn =
@@ -218,7 +225,12 @@ let handler dynamo body sock req =
         let wood = resources ~kind:Resources.Wood |> (<) 0 in
         let rock = resources ~kind:Resources.Rock |> (<) 0 in
         let messages = Props.messages tile |> List.is_empty |> not in
-        Payloads_t.({p=players;w=wood;r=rock;m=messages})
+        let is_temple = function | Atoms.Temple _ -> true in
+        let temple = Props.extants tile
+                     |> List.filter ~f:is_temple
+                     |> List.is_empty
+                     |> not in
+        Payloads_t.({p=players;w=wood;r=rock;m=messages;t=temple})
       in
       let tiles = Board.mapi ~f:(fun _ _ tid -> to_map_tile tid)
           (Dynamo.board dynamo) in

@@ -71,4 +71,4 @@ let assert_players_on_board dynamo =
 
 let make_tile ?(players=[]) (resources : (Resources.kind,int) List.Assoc.t) =
   let resources = Resources.of_alist_exn resources in
-  Tile.create ~players ~resources ~messages:[] ()
+  Tile.create ~players ~resources ~messages:[] ~extants:[] ()

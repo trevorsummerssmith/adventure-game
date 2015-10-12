@@ -42,6 +42,7 @@ type map_tile =
   ; w : bool (* wood *)
   ; r : bool (* rock *)
   ; m : bool (* messages *)
+  ; t : bool (* temple *)
   }
 
 type map_payload =

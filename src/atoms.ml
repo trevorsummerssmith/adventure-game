@@ -6,3 +6,6 @@ type percent_complete =
 
 type kind =
   | Artifact of Entity.Id.t with sexp_of
+
+type extant =
+  | Temple of Entity.Id.t with sexp_of

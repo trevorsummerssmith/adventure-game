@@ -7,6 +7,7 @@ var MAP_COLOR_MESSAGE = "rgb(255,140,0)";
 var MAP_COLOR_WOOD = "rgb(0,255,0)";
 var MAP_COLOR_ROCK = "rgb(255,255,255)";
 var MAP_COLOR_CURRENT_PLAYER = "rgb(255,255,0)";
+var MAP_COLOR_TEMPLE = "rgb(255,215,0)";
 
 // Width/height of tile
 var TILE_DIMENSION = 4;
@@ -58,7 +59,12 @@ function drawMap(canvas, mapData, playerPosn) {
 	          var tile = mapData[i][j];
 	          var x = (i * 5) + 1;
 	          var y = (j * 5) + 1;
-	          if (tile.p) {
+            // Temple is most important
+            if (tile.t) {
+                ctx.fillStyle = MAP_COLOR_TEMPLE;
+                ctx.fillRect(x, y, TILE_DIMENSION, TILE_DIMENSION);
+            }
+            else if (tile.p) {
 		            ctx.fillStyle = MAP_COLOR_PLAYERS;
 		            ctx.fillRect(x, y, TILE_DIMENSION, TILE_DIMENSION);
 	          }
