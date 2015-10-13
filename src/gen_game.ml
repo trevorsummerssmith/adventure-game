@@ -1,5 +1,8 @@
 open Core.Std
 
+let pick ls =
+  List.length ls |> Random.int |> List.nth_exn ls
+
 let random_posn width height () =
   Random.int width, Random.int height
 
@@ -23,8 +26,27 @@ let gen_player_add_ops random_posn player_names =
       Game_op.(create (Add_player (name, Some uuid)) (random_posn ())))
     player_names
 
-let doit seed num_players file () =
-  let num_players = Option.value ~default:0 num_players in
+let add_temples num_temples random_posn =
+  let names = ["Green"
+                     ;"Blue"
+                     ;"Shiva"
+                     ;"Mighty Alfonzo"] in
+  let secrets = ["A diamond rat"
+                       ;"A portal to another world"
+                       ;"Something strange"] in
+  let rec loop aux i =
+    if i = 0 then
+      aux
+    else
+      let name = pick names in
+      let secret = pick secrets in
+      let code = Game_op.Add_temple (name, secret) in
+      let op = Game_op.create code (random_posn ()) in
+      loop (op::aux) (i-1)
+  in
+  loop [] num_temples
+
+let doit seed num_players num_temples file () =
   let seed = Option.value ~default:(Unix.gettimeofday () |> Int.of_float) seed in
   let player_names = get_player_names num_players in
   Printf.printf "Using seed: %d %s\n" seed file;
@@ -45,9 +67,10 @@ let doit seed num_players file () =
       make_stuff (i-1) (op1::op2::aux)
   in
   let ops = make_stuff 20 [] in
-  (* Make players *)
+  (* Make players and temples *)
   let player_ops = gen_player_add_ops random_posn player_names in
-  let ops = player_ops @ ops in
+  let temple_ops = add_temples num_temples random_posn in
+  let ops = player_ops @ temple_ops @ ops in
   let game = Game.create ops (width,height) in
   Out_channel.with_file file ~f:(fun oc ->
       Game.sexp_of_t game
@@ -60,7 +83,10 @@ let command =
     ~summary:"Make a starting board"
     Command.Spec.(empty
                   +> flag "-s" (optional int) ~doc:"int. Random seed."
-                  +> flag "-p" (optional int) ~doc:"Number of players"
+                  +> flag "-p" (optional_with_default 2 int)
+                    ~doc:"int Number of players. Defaults to 2"
+                  +> flag "-t" (optional_with_default 1 int)
+                    ~doc:"int How many temples. Defaults to 1"
                   +> anon ("filename" %: file))
     doit
 
