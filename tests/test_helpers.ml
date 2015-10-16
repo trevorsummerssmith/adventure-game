@@ -26,6 +26,10 @@ let ae_tile t t' =
   let cmp a b = (Tile.shallow_compare a b) = 0 in
   ae_sexp ~cmp Tile.sexp_of_t t t'
 
+let ae_resources r r' =
+  let cmp a b = (Resources.compare a b) = 0 in
+  ae_sexp ~cmp Resources.sexp_of_t r r'
+
 let ae_game_op op op' =
   (* Ignore Game_op's time (because it is computer assigned) *)
   ae_sexp ~cmp:(fun a b ->

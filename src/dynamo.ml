@@ -208,7 +208,10 @@ and take_action dynamo op =
                       |> Props.resources in
       assert (Resources.(get resources ~kind:Wood) >= 1);
       assert (Resources.(get resources ~kind:Rock) >= 1);
-      Props.set_resources dynamo.store player_id resources;
+      resources
+      |> Resources.decr ~kind:Resources.Wood
+      |> Resources.decr ~kind:Resources.Rock
+      |> Props.set_resources dynamo.store player_id;
       Props.add_to_buildables dynamo.store player_id buildable_id;
     in
     let buildable_id = Option.value ~default:(Uuid.create ()) buildable_id_op in

@@ -258,7 +258,9 @@ let create_artifact_success _ =
         ~kind:(Atoms.Artifact artifact_id)
         ()
     in
-    ae_buildable answer buildable
+    let resources = Props.get_resources store player_id in
+    ae_buildable answer buildable;
+    ae_resources Resources.empty resources
 
 let create_artifact_validation_failure_wood _ =
   (* Player doesn't have enough wood *)
